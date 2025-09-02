@@ -1,0 +1,97 @@
+.joblist-container {
+  padding: 10px;
+  font-family: Arial, sans-serif;
+}
+
+/* 🔹 Filters Bar */
+.filters-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+  gap: 8px;
+}
+
+.filters-bar input[type="date"],
+.filters-bar .search-box {
+  padding: 4px 6px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+}
+
+.filters-bar label {
+  font-size: 13px;
+}
+
+.radio-group label {
+  margin-right: 6px;
+  font-size: 13px;
+}
+
+.btn {
+  padding: 5px 10px;
+  font-size: 13px;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.btn-blue {
+  background: #3da6ff;
+  color: #fff;
+}
+
+.btn-light {
+  background: #f1f1f1;
+  color: #000;
+}
+
+.btn-green {
+  background: #4CAF50;
+  color: white;
+}
+
+/* 🔹 Table */
+.job-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  font-size: 13px;
+}
+
+.job-table th {
+  background: #f4f6f9;
+  border: 1px solid #ccc;
+  padding: 6px;
+  text-align: left;
+}
+
+.job-table td {
+  border: 1px solid #ccc;
+  padding: 6px;
+}
+
+.job-table tbody tr:hover {
+  background: #f9f9f9;
+  cursor: pointer;
+}
+
+/* 🔹 Job link (orange clickable) */
+.job-link {
+  color: #ff6600;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* 🔹 Filter Row */
+.filter-row th {
+  padding: 2px;
+}
+
+.filter-input {
+  width: 100%;
+  padding: 3px;
+  font-size: 12px;
+  border: 1px solid #ddd;
+  border-radius: 2px;
+}

@@ -1,0 +1,70 @@
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  background: #f8f9fa;
+}
+
+.page-container {
+  padding: 20px;
+}
+
+.page-title {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 15px;
+}
+
+.job-summary {
+  background: #fff;
+  border: 1px solid #ddd;
+  padding: 10px;
+  margin-bottom: 20px;
+}
+
+.styled-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+}
+
+.styled-table th,
+.styled-table td {
+  border: 1px solid #ccc;
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.styled-table th {
+  background: #007bff;
+  color: #fff;
+}
+
+.clickable-row:hover {
+  background: #e9f5ff;
+  cursor: pointer;
+}
+
+.tabs-container {
+  margin-top: 20px;
+}
+
+.tabs-container button {
+  background: #f1f1f1;
+  border: none;
+  padding: 10px 15px;
+  margin-right: 5px;
+  cursor: pointer;
+}
+
+.tabs-container button.active-tab {
+  background: #007bff;
+  color: white;
+  font-weight: bold;
+}
+
+.tab-content {
+  background: #fff;
+  border: 1px solid #ddd;
+  padding: 15px;
+  margin-top: 10px;
+}

@@ -1,0 +1,22 @@
+import React, { Component } from "react";
+import { BrowserRouter as Router, Route, Switch } from "react-router-dom";
+import { JobProvider } from "./context/JobContext";
+import JobList from "./pages/JobList";
+import JobDetails from "./pages/JobDetails";
+
+class App extends Component {
+  render() {
+    return (
+      <JobProvider>
+        <Router>
+          <Switch>
+            <Route exact path="/" component={JobList} />
+            <Route path="/job/:jobId" component={JobDetails} />
+          </Switch>
+        </Router>
+      </JobProvider>
+    );
+  }
+}
+
+export default App;
