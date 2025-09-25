@@ -1,0 +1,126 @@
+import React from "react";
+import { parseCSV } from "../../utils/csvParser"; // Your CSV parser utility
+
+class JobCostUploader extends React.Component {
+  constructor(props) {
+    super(props);
+    this.fileInputRef = React.createRef();
+    this.state = {
+      parsedData: null, // Store parsed CSV data here
+    };
+  }
+
+  handleFileChange = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (!file.name.endsWith(".csv")) {
+      alert("Please upload a CSV file only.");
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      try {
+        const text = e.target.result;
+        const parsed = parseCSV(text);
+        console.log("✅ CSV parsed:", parsed);
+
+        const requiredHeaders = [
+          "job_number",
+          "vendor_inv_no",
+          "vendor_inv_date",
+          "zero_tax_cost",
+          "tax_cost",
+          "vendor_id",
+        ];
+        // Check if all required headers exist in parsed.columns
+        const missingHeaders = requiredHeaders.filter(
+          (header) => !parsed.columns.includes(header)
+        );
+
+        if (missingHeaders.length > 0) {
+          alert(
+            `Please check your CSV file.\nMissing required headers: ${missingHeaders.join(
+              ", "
+            )}.`
+          );
+          return; // stop here, don't set state
+        }
+
+        // Save parsed data in state
+        this.setState({
+          parsedData: {
+            fileName: file.name,
+            ...parsed,
+          },
+        });
+      } catch (err) {
+        console.error("❌ Error parsing CSV:", err);
+        alert("Failed to parse CSV. Please check the file format.");
+      }
+    };
+
+    reader.readAsText(file);
+  };
+
+  handlePostJob = () => {
+    const { parsedData } = this.state;
+
+    if (!parsedData) {
+      alert("Please upload a CSV file first.");
+      return;
+    }
+
+    console.log("🚀 Ready to post:", parsedData);
+
+    // Replace this with your actual API call to post data:
+    /*
+    fetch("/api/jobcost/post", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(parsedData.data),
+    })
+      .then((res) => res.json())
+      .then((result) => {
+        alert("Posted successfully!");
+        // Optionally clear state and reset file input
+        this.setState({ parsedData: null });
+        this.fileInputRef.current.value = null;
+      })
+      .catch((err) => {
+        console.error("Posting error:", err);
+        alert("Failed to post data.");
+      });
+    */
+
+    // For now, just alert success (remove in real usage)
+    alert("Posting functionality is not implemented yet!");
+  };
+
+  render() {
+    return (
+      <div className="filters-bar">
+        <div className="filter-group" style={{ paddingTop: "10px" }}>
+          <label htmlFor="cost-import">Job Cost Import (CSV)</label>
+          <input
+            type="file"
+            id="cost-import"
+            accept=".csv"
+            className="input-field job-cost-import"
+            ref={this.fileInputRef}
+            onChange={this.handleFileChange}
+          />
+        </div>
+        <div style={{ paddingBottom: "6px" }}>
+          <button className="btn btn_post" onClick={this.handlePostJob}>
+            Post
+          </button>
+        </div>
+      </div>
+    );
+  }
+}
+
+export default JobCostUploader;

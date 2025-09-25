@@ -1,0 +1,134 @@
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
+
+export const generateJobChargesExcel = async (jobChargesData = []) => {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet("Job Charges");
+
+  // 🔹 Title
+  worksheet.mergeCells("A1:Y1"); // 25 columns = A to Y
+  const titleCell = worksheet.getCell("A1");
+  titleCell.value = "Job Charges Report";
+  titleCell.font = { size: 16, bold: true };
+  titleCell.alignment = { vertical: "middle", horizontal: "center" };
+  worksheet.addRow([]); // Empty row
+
+  // 🔹 Define Headers (same order as your <th>)
+  const headers = [
+    "jobChargesId",
+    "chargeCategoryId",
+    "chargeCategoryCode",
+    "chargeName",
+    "amount",
+    "approvedAmount",
+    "approvedById",
+    "approvedDate",
+    "sfOrderItemNumber",
+    "inActive",
+    "updatedByUserId",
+    "dateUpdated",
+    "remarks",
+    "isApprovalRequired",
+    "approvedRemarks",
+    "approvedBy",
+    "updatedBy",
+    "currency",
+    "approvedCurrencyId",
+    "approvedCurrency",
+    "billTo",
+    "approvalStatus",
+    "isFreightInvoice",
+    "documentPath",
+    "sfOrderNumber",
+  ];
+  worksheet.addRow(headers);
+
+  // 🔹 Header Styling
+  const headerRow = worksheet.getRow(3);
+  headerRow.font = { bold: true, color: { argb: "FFFFFF" } };
+  for (let i = 1; i <= headers.length; i++) {
+    const cell = headerRow.getCell(i);
+    cell.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "44799B" },
+    };
+    cell.alignment = { horizontal: "center", vertical: "middle" };
+  }
+  // headerRow.fill = {
+  //   type: "pattern",
+  //   pattern: "solid",
+  //   fgColor: { argb: "44799B" }, // Blue background
+  // };
+  // headerRow.alignment = { horizontal: "center", vertical: "middle" };
+
+  // 🔹 Freeze Header
+  worksheet.views = [
+    {
+      state: "frozen",
+      ySplit: 3,
+    },
+  ];
+
+  // 🔹 Add Data Rows
+  jobChargesData.forEach((entry) => {
+    worksheet.addRow([
+      entry.jobChargesId,
+      entry.chargeCategoryId,
+      entry.chargeCategoryCode,
+      entry.chargeName,
+      entry.amount,
+      entry.approvedAmount,
+      entry.approvedById,
+      entry.approvedDate,
+      entry.sfOrderItemNumber,
+      entry.inActive,
+      entry.updatedByUserId,
+      entry.dateUpdated,
+      entry.remarks,
+      entry.isApprovalRequired,
+      entry.approvedRemarks,
+      entry.approvedBy,
+      entry.updatedBy,
+      entry.currency,
+      entry.approvedCurrencyId,
+      entry.approvedCurrency,
+      entry.billTo,
+      entry.approvalStatus,
+      entry.isFreightInvoice,
+      entry.documentPath,
+      entry.sfOrderNumber,
+    ]);
+  });
+
+  // 🔹 Format Rows: Borders + Alignment
+  worksheet.eachRow((row, rowNumber) => {
+    if (rowNumber >= 3) {
+      row.eachCell((cell) => {
+        cell.border = {
+          top: { style: "thin" },
+          bottom: { style: "thin" },
+          left: { style: "thin" },
+          right: { style: "thin" },
+        };
+        cell.alignment = { horizontal: "center", vertical: "middle" };
+      });
+    }
+  });
+
+  // 🔹 Auto Width for Columns
+  worksheet.columns.forEach((column) => {
+    let maxLength = 0;
+    column.eachCell({ includeEmpty: true }, (cell) => {
+      const columnLength = cell.value ? cell.value.toString().length : 10;
+      if (columnLength > maxLength) {
+        maxLength = columnLength;
+      }
+    });
+    column.width = maxLength < 20 ? 20 : maxLength + 2;
+  });
+
+  // 🔹 Export File
+  const buffer = await workbook.xlsx.writeBuffer();
+  saveAs(new Blob([buffer]), "Job-Charges-Report.xlsx");
+};

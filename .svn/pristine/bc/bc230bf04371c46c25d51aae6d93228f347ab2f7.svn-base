@@ -1,0 +1,34 @@
+import React from "react";
+import CostEntry from "./CostEntry";
+import Documents from "./Documents";
+import JobCharges from "./JobCharges";
+
+function BodyTabs({ activeBodyTab, setBodyTab }) {
+  return (
+    <>
+      {/* Checkboxes */}
+
+      {/* Body Tabs */}
+      <div className="tabs">
+        {["Cost Entry", "Documents", "Job Charges"].map((tab) => (
+          <button
+            key={tab}
+            className={`tab ${activeBodyTab === tab ? "active" : ""}`}
+            onClick={() => setBodyTab(tab)}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab Content */}
+      <div className="body-tab-content">
+        {activeBodyTab === "Cost Entry" && <CostEntry />}
+        {activeBodyTab === "Documents" && <Documents />}
+        {activeBodyTab === "Job Charges" && <JobCharges />}
+      </div>
+    </>
+  );
+}
+
+export default BodyTabs;

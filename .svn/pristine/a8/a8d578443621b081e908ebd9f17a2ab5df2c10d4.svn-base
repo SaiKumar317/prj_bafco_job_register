@@ -1,0 +1,2 @@
+select * from cCore_Vouchers_0 where sName like '%freight%' 
+--Air Cargo Job 5634, Ancillary Job 5637, Storage & Handling Job 5639, Heavy Lift Job 5640, Freight Forwarding 5641

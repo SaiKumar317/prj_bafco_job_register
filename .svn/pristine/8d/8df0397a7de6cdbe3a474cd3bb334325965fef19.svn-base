@@ -1,0 +1,452 @@
+import React, { Component } from "react";
+import { JobContext } from "../context/JobContext";
+import { withRouter } from "react-router-dom";
+import "../styles/jobList.css";
+import LoadingView from "../components/common/LoadingView";
+import { generateJobRegisterExcel } from "../generateExcel";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faSyncAlt, faTimes } from "@fortawesome/free-solid-svg-icons";
+import { Focus8WAPI } from "../mainClient";
+import JobCostUploader from "../components/jobCostUploader/JobCostUploader";
+
+class JobList extends Component {
+  state = {
+    filterInputs: Array(18).fill(""), // one value for each column
+  };
+  static contextType = JobContext;
+
+  handleJobClick = (job) => {
+    this.context.setSelectedJob(job);
+    this.props.history.push(`/job/${job.jobId}`);
+  };
+
+  handleFindClick = () => {
+    const startDate = document.getElementById("start-date").value;
+    const endDate = document.getElementById("end-date").value;
+    const ignoreDate = document.querySelector("input[type=checkbox]").checked;
+    const type =
+      document.querySelector("input[name=type]:checked")?.value || "";
+    const search = document.getElementById("search-box").value;
+
+    const filters = { startDate, endDate, ignoreDate, type, search };
+
+    this.context.fetchJobs(filters); // ✅ call API
+  };
+
+  onExport = async () => {
+    const { jobs } = this.context;
+
+    // Export logic here
+    if (jobs.length === 0) {
+      alert("No data available for export.");
+      return;
+    }
+
+    generateJobRegisterExcel(jobs);
+  };
+
+  handleClearFilters = () => {
+    const startDateInput = document.getElementById("start-date");
+    const endDateInput = document.getElementById("end-date");
+    const checkbox = document.querySelector("input[type=checkbox]");
+    const cntrRadio = document.querySelector("input[name=type][value=Cntr]");
+    const searchBox = document.getElementById("search-box");
+
+    if (startDateInput) {
+      startDateInput.value = this.context.accountDate;
+      startDateInput.disabled = false;
+    }
+
+    if (endDateInput) {
+      endDateInput.value = new Date().toISOString().split("T")[0];
+      endDateInput.disabled = false;
+    }
+
+    if (checkbox) {
+      checkbox.checked = false;
+    }
+
+    if (cntrRadio) {
+      cntrRadio.checked = true;
+    }
+
+    if (searchBox) {
+      searchBox.value = "";
+    }
+  };
+
+  handleCostLockClick = async () => {
+    const { jobs, setJobs, sessionId, setIsLoading } = this.context;
+
+    // Filter selected entries
+    const selectedEntries = jobs?.filter((entry) => entry.selected);
+
+    if (!selectedEntries || selectedEntries.length === 0) {
+      alert("Please select at least one Job to Cost Lock.");
+      return;
+    }
+
+    const selectedHeaders = selectedEntries.map((entry) => ({
+      voucherNo: entry?.sVoucherNo,
+      iHeaderId: entry?.iHeaderId,
+      jobId: entry?.jobId,
+      jobName: entry?.jobName,
+      jobCode: entry?.jobCode,
+      costLocked: 1,
+      companyCode: sessionId.substring(0, 3),
+    }));
+
+    const payload = {
+      costLockData: selectedHeaders,
+    };
+
+    const serverUrl = window.serverUrl;
+
+    try {
+      setIsLoading(true);
+      const response = await fetch(`${serverUrl}/status/jobReg`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await response.json();
+
+      if (result?.success) {
+        alert(`Cost Lock successful.`);
+
+        const startDate = document.getElementById("start-date").value;
+        const endDate = document.getElementById("end-date").value;
+        const ignoreDate = document.querySelector(
+          "input[type=checkbox]"
+        ).checked;
+        const type =
+          document.querySelector("input[name=type]:checked")?.value || "";
+        const search = document.getElementById("search-box").value;
+
+        const filters = { startDate, endDate, ignoreDate, type, search };
+
+        this.context.fetchJobs(filters); // ✅ call API
+      } else {
+        alert("Failed to Cost Lock");
+      }
+    } catch (error) {
+      console.error("Error locking cost:", error);
+      alert("An error occurred while locking cost.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  handleIgnoreDateChange = (e) => {
+    const ignoreDate = e.target.checked;
+
+    // disable/enable date inputs based on checkbox
+    document.getElementById("start-date").disabled = ignoreDate;
+    document.getElementById("end-date").disabled = ignoreDate;
+  };
+
+  handleFilterChange = (index, value) => {
+    console.log("handleFilterChange", value);
+    const updatedFilters = [...this.state.filterInputs];
+    updatedFilters[index] = value;
+    this.setState({ filterInputs: updatedFilters });
+  };
+  toggleCheckbox = (rowIndex) => {
+    const { jobs, setJobs } = this.context;
+
+    const updatedJobs = [...jobs];
+    updatedJobs[rowIndex] = {
+      ...updatedJobs[rowIndex],
+      selected: !updatedJobs[rowIndex]?.selected,
+    };
+
+    setJobs(updatedJobs); // ✅ Update context
+  };
+
+  closeModule = () => {
+    const isClose = window.confirm(
+      "Do you want to close the Job Register Module?"
+    );
+    if (isClose === true) {
+      Focus8WAPI.gotoHomePage();
+    } else {
+      return;
+    }
+  };
+
+  render() {
+    const { jobs, accountDate, isLoading } = this.context;
+
+    const filteredJobs = jobs.filter((job) => {
+      const values = [
+        job.jobName,
+        job.docDate,
+        job.ShippingConsignmentCode,
+        job.PORef,
+        job.shippingLine,
+        job.jobStatus,
+        job.vessel,
+        job.Arrival,
+        job.portLoading,
+        job.portDestination,
+        job.MblNoHeader,
+        job.HblNoHeader,
+        job.handleBy,
+        job.FreightTerms,
+        job.invoice,
+        job.branch,
+        job.salesman,
+        job.operationType,
+      ];
+
+      return this.state.filterInputs.every((input, idx) => {
+        if (!input) return true; // skip empty filters
+        const cellValue = values[idx] || "";
+        return cellValue.toString().toLowerCase().includes(input.toLowerCase());
+      });
+    });
+
+    return (
+      <div className="joblist-container">
+        <p className="module_name">Job Register</p>
+        {isLoading && <LoadingView />}
+        {/* 🔹 Filters Section */}
+        <div className="filters-section">
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <div className="filters-bar">
+              <div className="filter-group">
+                <label htmlFor="start-date">Start Date</label>
+                <input
+                  className="input-field"
+                  id="start-date"
+                  type="date"
+                  defaultValue={accountDate}
+                />
+              </div>
+
+              <div className="filter-group">
+                <label htmlFor="end-date">End Date</label>
+                <input
+                  className="input-field"
+                  id="end-date"
+                  type="date"
+                  defaultValue={new Date().toISOString().split("T")[0]}
+                />
+              </div>
+
+              <div className="filter-group checkbox-group">
+                <label>
+                  <input
+                    type="checkbox"
+                    onChange={this.handleIgnoreDateChange}
+                  />{" "}
+                  Ignore Date?
+                </label>
+              </div>
+
+              <div className="filter-group" style={{ marginLeft: "30px" }}>
+                <label>Type</label>
+                <div className="radio-group">
+                  <label>
+                    <input
+                      type="radio"
+                      name="type"
+                      value="Cntr"
+                      defaultChecked
+                    />{" "}
+                    Cntr
+                  </label>
+                  <label>
+                    <input type="radio" name="type" value="BL" /> BL
+                  </label>
+                  <label>
+                    <input type="radio" name="type" value="Bayan" /> Bayan
+                  </label>
+                </div>
+              </div>
+
+              <div className="filter-group">
+                <label htmlFor="search-box">Search</label>
+                <input
+                  id="search-box"
+                  type="text"
+                  placeholder="Search..."
+                  className="search-box input-field"
+                />
+              </div>
+            </div>
+            <div>
+              <button className="btn btn_post" onClick={this.handleFindClick}>
+                Find
+              </button>
+              <button className="btn btn_post" onClick={this.handleFindClick}>
+                <FontAwesomeIcon
+                  icon={faSyncAlt}
+                  style={{ marginRight: "0px" }}
+                />
+                {/* Refresh */}
+              </button>
+              {jobs.length > 0 && (
+                <button className="btn btn_post" onClick={this.onExport}>
+                  Export to Excel
+                </button>
+              )}
+
+              <button
+                className="btn btn_post"
+                onClick={this.handleClearFilters}
+              >
+                Clear Filters
+              </button>
+              <button
+                className="btn btn_post"
+                onClick={this.handleCostLockClick}
+              >
+                Cost Lock
+              </button>
+              <button className="btn btn_post" onClick={this.closeModule}>
+                <FontAwesomeIcon
+                  icon={faTimes}
+                  style={{ marginRight: "0px" }}
+                />
+                {/* Close */}
+              </button>
+            </div>
+          </div>
+          <JobCostUploader />
+          {/* <div className="filters-bar">
+            <div className="filter-group" style={{ paddingTop: "10px" }}>
+              <label htmlFor="cost-import">Job Cost Import (CSV)</label>
+              <input
+                type="file"
+                id="cost-import"
+                accept=".csv"
+                className="input-field job-cost-import"
+              />
+            </div>
+            <div style={{ paddingBottom: "6px" }}>
+              <button className="btn btn_post" onClick={this.handlePostJob}>
+                Post
+              </button>
+            </div>
+          </div> */}
+
+          {/* <button className="btn btn-green">Add New Job</button> */}
+        </div>
+
+        {/* 🔹 Table Section */}
+        <div style={{ overflowX: "auto", maxHeight: "85vh" }}>
+          <table className="job-table">
+            <thead id="table-header">
+              <tr>
+                <th>cost Lock</th>
+                <th>Job Id</th>
+                <th>Date</th>
+                <th>Ship/Consg</th>
+                <th>PO Ref</th>
+                <th className="col-ship-line">Ship Line</th>
+                <th>Status</th>
+                <th>Vessel</th>
+                <th>ETA Date</th>
+                <th>POL</th>
+                <th>POD</th>
+                <th>MBL</th>
+                <th>HBL</th>
+                <th>Handle By</th>
+                <th>FR-TERM</th>
+                <th>Invoice#</th>
+                <th>Branch</th>
+                <th>Salesman</th>
+                <th>Operation</th>
+              </tr>
+              {/* 🔹 Filter Row under headers */}
+              <tr className="filter-row">
+                <th>{/* Empty cell for cost lock checkbox */}</th>
+                {Array(18)
+                  .fill(0)
+                  .map((_, i) => (
+                    <th key={i + 1}>
+                      <input
+                        type="text"
+                        className="filter-input"
+                        placeholder="search..."
+                        value={this.state.filterInputs[i]}
+                        onChange={(e) =>
+                          this.handleFilterChange(i, e.target.value)
+                        }
+                      />
+                    </th>
+                  ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filteredJobs.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan="19"
+                    style={{
+                      textAlign: "center",
+                      fontSize: "20px",
+                      color: "#999",
+                    }}
+                  >
+                    No data found
+                  </td>
+                </tr>
+              ) : (
+                filteredJobs.map((job, index) => (
+                  <tr
+                    key={`${index}-${job.jobId}`}
+                    className={`tr-tablerow ${
+                      index % 2 === 0 ? "even-row" : "odd-row"
+                    } ${job.selected ? "selected-row" : ""}`}
+                  >
+                    <td style={{ textAlign: "center" }}>
+                      <input
+                        type="checkbox"
+                        className="bodyCheckBox"
+                        checked={job.selected || job?.costLocked}
+                        onChange={() => this.toggleCheckbox(index)}
+                        disabled={job?.costLocked}
+                      />
+                    </td>
+                    <td>
+                      <span
+                        className="job-link"
+                        onClick={() => this.handleJobClick(job)}
+                      >
+                        {job.jobName}
+                      </span>
+                    </td>
+                    <td>{job.docDate}</td>
+                    <td>{job.ShippingConsignmentCode || "NA"}</td>
+                    <td>{job.PORef || ""}</td>
+                    <td>{job.shippingLine || ""}</td>
+                    <td>{job.jobStatus || ""}</td>
+                    <td>{job.vessel || ""}</td>
+                    <td>{job.Arrival || ""}</td>
+                    <td>{job.portLoading || ""}</td>
+                    <td>{job.portDestination || ""}</td>
+                    <td>{job.MblNoHeader || ""}</td>
+                    <td>{job.HblNoHeader || ""}</td>
+                    <td>{job.handleBy || ""}</td>
+                    <td>{job.FreightTerms || ""}</td>
+                    <td>{job.invoice || ""}</td>
+                    <td>{job.branch || ""}</td>
+                    <td>{job.salesman || ""}</td>
+                    <td>{job.operationType || ""}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
+}
+
+export default withRouter(JobList);

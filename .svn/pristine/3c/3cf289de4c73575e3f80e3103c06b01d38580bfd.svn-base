@@ -1,0 +1,11 @@
+import React from "react";
+
+function JobDetailsTransport({ data }) {
+  return (
+    <>
+      <p>Transport details Tab {data}</p>
+    </>
+  );
+}
+
+export default JobDetailsTransport;

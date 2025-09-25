@@ -1,0 +1,495 @@
+.module_name{
+  padding-top: 5px;
+  color: #0073AA;
+  /* color: white;
+  background-color: #0073AA; */
+  font-weight: bold;
+   text-align: center;
+   /* text-decoration: underline;
+  text-decoration-color: #0073AA; */
+  text-decoration-thickness: 3px;
+   font-size: 17px;
+   margin: 0px;
+   /* position: fixed; */
+   /* top: 0;
+   left: 0;
+   width: 100%; 
+   z-index: 1; */
+}
+
+.products-loader-container {
+  top: 0;
+    left: 0;
+    position: fixed;
+    width: 100vw;
+    /* 100% of the viewport width */
+    height: 100vh;
+    /* 100% of the viewport height */
+    background: rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10001;
+}
+.products-loader-text {
+  font-size: 20px;
+  font-weight: bold;
+  color: #0073AA;
+}
+.filterContainer {
+  /* margin-top: 60px; */
+  /* margin-left: 17%; */
+  display: flex;
+  justify-content: start;  
+  position: relative;
+  box-sizing: border-box;
+}
+.filterContainer2 {
+  margin-top: 5px;
+  /* margin-left: 17%; */
+  display: flex;
+  justify-content: start;  
+  position: relative;
+  box-sizing: border-box;
+}
+.filterContainer3 {
+  margin-top: 3px;
+  /* margin-left: 17%; */
+  display: flex;
+  justify-content: start;  
+  position: relative;
+  box-sizing: border-box;
+}
+.filterContainer-header2 {
+  margin-top: 3px;
+  /* margin-left: 17%; */
+  display: flex;
+  flex-direction: column;  
+  position: relative;
+  box-sizing: border-box;
+}
+
+.radio-button-group {
+  display: flex;
+  /* Ensures the radio buttons are displayed in a row */
+  align-items: center;
+  /* Centers items vertically within the container */
+  /* margin-top: 3px; */
+    /* margin-left: 17%; */
+  /* Adds top margin to create space between groups */
+}
+
+.radio-button-group label {
+  margin-right: 10px;
+  /* Adds right margin between each radio button and its label */
+}
+
+.radio-button-group input[type="radio"] {
+  /* Optionally, you can add custom styles for the radio buttons themselves */
+  margin-right: 5px;
+  /* Adds spacing between radio buttons */
+}
+.head_input {
+  margin-right: 80px;
+  width: 200px;
+  float: left;
+  margin-bottom: 10px;
+  font-size: 13px;
+  font-weight: "100";
+    outline: none;
+}
+.head_input:focus{
+  /* outline-color: "#868e96";
+  /* outline: 'solid'  */
+border: 2px solid #626363;
+  border-radius: 5px;
+  /* outline: 'none'  */
+
+}
+.dateSelection{
+  padding: 6px 0px 7px 10px;
+
+}
+/* 
+ label {
+   font-size: 13px;
+   font-weight: 600;
+  color: #0073AA;
+   clear: left;
+   text-align: left;
+   padding-right: 5px;
+   float: left;
+   padding-top: 8px;
+   margin-bottom: 12px;
+ } */
+ .input_label{
+    font-size: 13px;
+      font-weight: 600;
+      color: #0073AA;
+      /* width: 90px; */
+      clear: left;
+      text-align: left;
+      padding-right: 5px;
+      float: left;
+      padding-top: 8px;
+      margin-bottom: 12px;
+ }
+ .ms_label{
+  font-size: 13px;
+    font-weight: 600;
+    color: #0073AA;
+    /* width: 90px; */
+    clear: left;
+    text-align: left;
+    /* padding-right: 5px; */
+    float: left;
+    /* padding-top: 8px;
+    margin-bottom: 12px; */
+  
+ }
+.ms_input{
+  z-index: 12;
+  }
+  
+  .ms_menu {
+    z-index: 9999 !important;
+    /* Adjust the value as needed */
+  }
+  
+  .react-select__control {
+    z-index: 9999 !important;
+    /* Adjust the value as needed */
+}
+ .btn_container {
+   display: flex;
+   align-items: center;
+   /* margin-left: 5%; */
+   /* margin-right: 22%; */
+   /* margin-bottom: 5px; */
+   font-size: 13px;
+ }
+ .btn_container2 {
+   display: flex;
+   align-items: center;
+  justify-content:end;
+   /* margin-left: 5%; */
+   margin-top: 15px;
+   margin-right: 10%;
+   margin-bottom: 15px;
+   font-size: 13px;
+ }
+ .btn_container3 {
+   display: flex;
+   align-items: center;
+  justify-content:end;
+   /* margin-left: 5%; */
+   margin-top: 10px;
+   margin-right: 22%;
+   margin-bottom: 5px;
+   font-size: 13px;
+ }
+
+ .btn_post,
+ .btn_close {
+   color: white;
+   margin-right: 7px;
+   background-color: #0073AA;
+   font-weight: bold;
+   padding: 3px 10px 3px 10px;
+   border-radius: 6px;
+   border-style: none;
+   cursor: pointer;
+ }
+
+ .btn_post:hover {
+   background-color: #35739c;
+   /* Change color on hover */
+ }
+
+ .btn_post:active {
+   background-color:#93aebf ;
+   /* Change color on click/active */
+ }
+
+
+ /* Table Component------------------------------------------------------------------------------- */
+
+ .table-data{
+  /* width: 130px; */
+ }
+ 
+ .voucher_name {
+   width: 100px;
+ }
+
+ .voucher_date {
+   width: 130px;
+ }
+
+ .s_no {
+   /* width: 15px; */
+   font-size: 13px;
+   font-weight: 500;
+   color: black;
+   text-align: center;
+ }
+
+ .s_no_head {
+   color: white !important;
+   padding-left: 4px;
+   padding-right: 4px;
+ }
+
+ .selected_voucher_name {
+   font-size: 13px;
+   font-weight: 500;
+   color: black;
+ }
+
+ table,
+ th,
+ tr,
+ td {
+   border: 1px solid #ccc;
+   border-collapse: collapse;
+   font-size: 13px;
+   font-weight: 500;
+
+ }
+
+ table {
+
+   text-align: center;
+ }
+
+ th {
+
+   border-bottom: 1px solid black;
+   font-size: 13px;
+   font-style: normal;
+   padding: 2px;
+
+
+ }
+
+ td {
+   padding-left: 3px;
+   padding-right: 3px;
+   text-align: left;
+   font-size: 13px;
+   font-weight: 400;
+   color: black;
+
+ }
+
+ #thed,
+ th {
+   top: 0;
+   position: sticky;
+   z-index: 10;
+ }
+
+
+ #tr1 {
+   background-color: #0073AA;
+   color: white;
+ }
+
+ .tr-tablerow:hover {
+   background-color: #f0eded;
+ }
+
+ /* table {
+  align-content: center;
+  margin-left: auto;
+  margin-right: auto;
+} */
+
+
+
+ .table-wrap-1 {
+   max-height: 90vh;
+   /* margin-left: 10px; */
+   width: max-content;
+   overflow-x: auto;
+   max-width: 95vw; 
+  }
+  .table-wrap-2 {
+    max-height: 50vh;
+    /* margin-left: 10px; */
+    width: max-content;
+    overflow-x: visible;
+    max-width: 95vw; 
+  }
+  .table-wrap-1-status {
+    max-height: 76vh;
+    /* margin-left: 10px; */
+    width: max-content;
+    overflow-x: auto;
+    max-width: 95vw; 
+   }
+  
+  .table_container{
+  display: flex;
+  justify-content: start;
+  padding-left: 20px;
+}
+ /* --------------------------------------------------------------------------------------------------------- */
+
+tfoot {
+  background-color: #f1f1f1;
+  /* Optional: add a background color for visibility */
+  font-weight: bold;
+  /* Optional: make footer text bold */
+}
+
+.footer-row {
+  height: 40px;
+  /* Adjust the height as needed */
+}
+
+.footer-cell {
+  /* text-align: right; */
+  /* Ensure numbers are right-aligned */
+  padding: 10px;
+  font-weight: 600;
+  /* Add padding for spacing */
+}
+
+ td {
+   word-break: break-word;
+   /* Allow words to break into a new line if they are too long */
+   /* padding: 0; */
+
+ }
+
+ .heading-row {
+   border: 2px solid white;
+ }
+
+ .body_input {
+   max-width: 105px;
+   margin-bottom: 0px;
+   border-style: solid;
+   border-color: #dedcdc;
+   border-radius: 3px;
+  padding: 3px;
+  cursor: pointer;
+ }
+
+ .bodyCheckBox {
+   width: 30px;
+  cursor: pointer;
+ }
+
+ #main-table td {
+   white-space: nowrap;
+   
+   /* Ensure content doesn't wrap inside table cells */
+ }
+ /* .wrap-text {
+  white-space: normal;
+  word-break: break-word;
+} */
+#main-table td.wrap-text,
+#main-table th.wrap-text {
+  min-width: 160px;
+  /* max-width: 300px; */
+  white-space: normal;
+  word-break: break-word;
+}
+ .customDropdowntable{
+  
+ }
+
+ #main-table th {
+  /* white-space: nowrap; */
+  /* overflow: hidden; */
+  /* text-overflow: ellipsis; */
+ }
+
+ .even-row {
+   background-color: #f2f2f2;
+  }
+  
+  .odd-row {
+    background-color: #ffffff;
+  }
+
+  .selected-row {
+    background-color: #dedcdc;
+  }
+
+  .header_cont{
+    border-style: solid;
+    border-width: 2px;
+    border-color: #0691d4;
+    border-radius: 10px;
+    padding: 30px;
+    margin: 10px;
+    
+    /* width:65% */
+  }
+  .header-cont2{
+    border-style: solid;
+    border-color: #0691d4;
+    border-width: 2px;
+    border-radius: 10px;
+    padding: 10px;
+    margin: 10px;
+    /* width:20% */
+  }
+    .rmsc .dropdown-container{
+border-color:#6e6f70;
+width: 200px !important;
+height: 38px;
+}
+    .rmsc .dropdown-content{     
+/* width: 110%; */
+}
+.rmsc{
+      /* --rmsc-w:200px; */
+/* width: 200px; */
+    }
+
+
+/* email styles */
+        /* styles.css */
+        .modal {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-color: rgba(0, 0, 0, 0.5);
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          z-index: 999;
+          /* Ensure modal is on top */
+        }
+    
+        .modal-content {
+          background: white;
+          padding: 20px;
+          border-radius: 5px;
+          width: 300px;
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .item-Name{
+          width: 250px;
+        }
+
+        .onclick-header{
+          cursor: pointer;
+        
+        }
+        .onclick-header:hover{
+          background-color: #35739c;
+          color: white;
+        }
+        .onclick-header:active{
+          background-color: #93aebf;
+          color: white;
+        }
+    

@@ -1,0 +1,556 @@
+import React, { useState, useEffect, useContext } from "react";
+import JobDetailsBasicInfo from "./JobDetailsBasicInfo";
+import JobDetailsTransport from "./JobDetailsTransport";
+import { focusFetchDataFromApi } from "../../services/focusFetchAPI";
+import { JobContext } from "../../context/JobContext";
+import { generateJobDetailsExcel } from "../../utils/generateJobDetailsExcel";
+
+function JobDetailsTab() {
+  const [activeBodyTab, setJobDetailsTab] = useState("Basic Info");
+  const [jobDetails, setJobDetails] = useState([]); // ✅ State to store fetched job details
+
+  const { sessionId, setIsLoading, selectedJob } = useContext(JobContext);
+
+  useEffect(() => {
+    async function fetchJobDetails() {
+      try {
+        const jobRegQuery = `SELECT 
+   distinct h.sVoucherNo,
+
+   --Header UI (box1)
+    ISNULL(js.sName, '') AS jobStatus,
+    ISNULL(ot.sName, '') AS operationType,
+    ISNULL(st.sName, '') AS serviceType,
+	ISNULL(t.iTag3008, 0) AS jobId,
+    ISNULL(j.sName, '') AS jobName,
+    ISNULL(j.sCode, '') AS jobCode,
+    convert (nvarchar, dbo.IntToDate(h.iDate),103) AS docDate,
+	ISNULL(eh.ServiceOrderId, '') AS serviceOrderId,
+    ISNULL(br.sName, '') AS branch,
+    ISNULL(ca.sName, '') AS customerAcc,
+    ISNULL(hb.sName, '') AS handleBy,
+    ISNULL(s.sName, '') AS salesman,
+    ISNULL(di.sName, '') AS division,
+    ISNULL(cc.sName, '') AS costCenter,
+	--Header UI (box1)
+	--Header UI (box2)
+    ISNULL(eh.PORef, '') AS PORef,
+    ISNULL(sc.sName, '') AS ShippingConsignmentCode,
+    ISNULL(eh.FreightTerms, '') AS freightTerms,
+    ISNULL(sl.sName, '') AS shippingLine,
+   '' AS vessel,
+   '' AS voyage,
+    ISNULL(pl.sName, '') AS portLoading,
+    ISNULL(pd.sName, '') AS portDestination,
+    ISNULL(convert (nvarchar, dbo.IntToDate(eh.Arrival),103),'') AS arrival,
+    ISNULL(convert (nvarchar, dbo.IntToDate(eh.Departure),103),'') AS departure,
+	ISNULL(eh.FinalDestination, '') AS finalDestination,
+	'' AS bookedContainer,
+    ISNULL(gt.sName, '') AS goodsType,
+    ISNULL(eh.DGClass, '') AS dgClass,
+    ISNULL(eh.JobCommodity, '') AS jobCommodity,
+    ISNULL(pm.sName, '') AS pickupPlace,
+    ISNULL(dpm.sName, '') AS dropofPlace,
+    ISNULL(eh.MblNoHeader, '') AS MblNoHeader,
+    ISNULL(eh.HblNoHeader, '') AS HblNoHeader,
+    ISNULL(eh.Weight_KGS_, '') AS weightKgs,
+    ISNULL(eh.Measurement_C_B_M_, '') AS measurementCbm,
+    ISNULL(eh.CargoAwb, '') AS cargoAwb,
+    ISNULL(eb.BayanNo, '') AS bayanNo,
+    ISNULL(vcbi.sName, '') AS vendorCustId,
+    ISNULL(eh.BookingType, '') AS bookinType,
+    ISNULL(oa.sName, '') AS overseasAgent,
+    ISNULL(nt.sName, '') AS networkType,
+	ISNULL(eh.Notes, '') AS notes,
+	ISNULL(eh.Notes, '') AS notes,
+	--Header UI (box2)
+	-- body UI
+    ISNULL(ct.sName, '') AS containerType,
+	ISNULL(eb.ContainerNo, '') AS containerNo,
+	ISNULL(eb.SealNo_, '') AS sealNo,
+	ISNULL(bsd.mInput1, 0) AS bAge,
+	ISNULL(bsd.mInput0, 0) AS sAge,
+	ISNULL(convert (nvarchar, dbo.IntToDate(eb.DateShuttle),103),'') AS dateShuttle,
+	ISNULL(convert (nvarchar, dbo.IntToDate(eb.DateAgeIn),103),'') AS dateAgeIn,
+   h.iHeaderId
+FROM tCore_Header_0 h
+JOIN tCore_HeaderData5634_0 eh ON eh.iHeaderId = h.iHeaderId
+JOIN tCore_Data_0 d ON d.iHeaderId = h.iHeaderId
+ JOIN tCore_Data5634_0 eb ON eb.iBodyId = d.iBodyId
+ JOIN tCore_IndtaBodyScreenData_0 bsd on bsd.iBodyId = d.iBodyId
+LEFT JOIN tCore_Data_Tags_0 t ON t.iBodyId = d.iBodyId
+LEFT JOIN mCore_joborder j ON j.iMasterId = t.iTag3008
+LEFT JOIN mCore_shippingline sl ON sl.iMasterId = t.iTag3007
+LEFT JOIN mCore_jobstatus js ON js.iMasterId = t.iTag3009
+LEFT JOIN mCore_port pl ON pl.iMasterId = eh.AirportofLoading
+LEFT JOIN mCore_port pd ON pd.iMasterId = eh.Airportofdestination
+LEFT JOIN mCore_handleby hb ON hb.iMasterId = t.iTag3038
+LEFT JOIN mCore_branch br ON br.iMasterId = t.iTag3002
+LEFT JOIN mCore_salesman s ON s.iMasterId = t.iTag3010
+LEFT JOIN mCore_operationtype ot ON ot.iMasterId = t.iTag3014
+LEFT JOIN mCore_networktype nt ON nt.iMasterId = t.iTag3011
+LEFT JOIN mCore_servicetype st ON st.iMasterId = t.iTag3016
+LEFT JOIN mCore_shipconsg sc ON sc.iMasterId = t.iTag3017
+LEFT JOIN mCore_CostCenter cc ON cc.iMasterId = t.iTag5
+LEFT JOIN mCore_goodstype gt ON gt.iMasterId = t.iTag3015
+LEFT JOIN mCore_placemaster pm ON pm.iMasterId = eh.PickupPlace
+LEFT JOIN mCore_placemaster dpm ON dpm.iMasterId = eh.DropofPlace
+LEFT JOIN mCore_Account vcbi on vcbi.iMasterId = eh.VendorCustomBrokerId
+LEFT JOIN mCore_overseasagent oa on oa.iMasterId = t.iTag3004
+LEFT JOIN mCore_containertype ct on ct.iMasterId = t.iTag3019 
+LEFT JOIN mCore_division di ON di.iMasterId = d.iFaTag
+LEFT JOIN mCore_Account ca on ca.iMasterId = d.iBookNo
+WHERE h.iVoucherType IN (5634) and t.iTag3008 = ${selectedJob.jobId}--Air Cargo Job 
+UNION ALL
+SELECT 
+   distinct h.sVoucherNo,
+
+   --Header UI (box1)
+    ISNULL(js.sName, '') AS jobStatus,
+    ISNULL(ot.sName, '') AS operationType,
+    ISNULL(st.sName, '') AS serviceType,
+	ISNULL(t.iTag3008, 0) AS jobId,
+    ISNULL(j.sName, '') AS jobName,
+    ISNULL(j.sCode, '') AS jobCode,
+    convert (nvarchar, dbo.IntToDate(h.iDate),103) AS docDate,
+	'' AS serviceOrderId,
+    ISNULL(br.sName, '') AS branch,
+    ISNULL(ca.sName, '') AS customerAcc,
+    ISNULL(hb.sName, '') AS handleBy,
+    ISNULL(s.sName, '') AS salesman,
+    ISNULL(di.sName, '') AS division,
+    ISNULL(cc.sName, '') AS costCenter,
+	--Header UI (box1)
+	--Header UI (box2)
+    ISNULL(eh.PORef, '') AS PORef,
+    ISNULL(sc.sName, '') AS ShippingConsignmentCode,
+    ISNULL(eh.FreightTerms, '') AS freightTerms,
+    ISNULL(sl.sName, '') AS shippingLine,
+   '' AS vessel,
+   '' AS voyage,
+    ISNULL(pl.sName, '') AS portLoading,
+    ISNULL(pd.sName, '') AS portDestination,
+    ISNULL(convert (nvarchar, dbo.IntToDate(eh.ServiceStartDate),103),'') AS arrival,
+    ISNULL(convert (nvarchar, dbo.IntToDate(eh.ServiceEndDate),103),'') AS departure,
+	ISNULL(eh.FinalDestination, '') AS finalDestination,
+	ISNULL(eh.BookedContainer, '') AS bookedContainer,
+    ISNULL(gt.sName, '') AS goodsType,
+    ISNULL(eh.DGClass, '') AS dgClass,
+    ISNULL(eh.JobCommodity, '') AS jobCommodity,
+    ISNULL(pm.sName, '') AS pickupPlace,
+    ISNULL(dpm.sName, '') AS dropofPlace,
+    ISNULL(eh.MblNoHeader, '') AS MblNoHeader,
+    ISNULL(eh.HblNoHeader, '') AS HblNoHeader,
+    ISNULL(eh.Weight_KGS_, '') AS weightKgs,
+    ISNULL(eh.Measurement_C_B_M_, '') AS measurementCbm,
+    ISNULL(eh.CargoAwb, '') AS cargoAwb,
+    ISNULL(eb.BayanNo, '') AS bayanNo,
+    '' AS vendorCustId,
+    '' AS bookinType,
+    '' AS overseasAgent,
+    ISNULL(nt.sName, '') AS networkType,
+	ISNULL(eh.Notes, '') AS notes,
+	ISNULL(eh.Notes, '') AS notes,
+	--Header UI (box2)
+	-- body UI
+    ISNULL(ct.sName, '') AS containerType,
+	ISNULL(eb.ContainerNo, '') AS containerNo,
+	ISNULL(eb.SealNo_, '') AS sealNo,
+	ISNULL(bsd.mInput1, 0) AS bAge,
+	ISNULL(bsd.mInput0, 0) AS sAge,
+	ISNULL(convert (nvarchar, dbo.IntToDate(eb.DateShuttle),103),'') AS dateShuttle,
+	ISNULL(convert (nvarchar, dbo.IntToDate(eb.DateAgeIn),103),'') AS dateAgeIn,
+   h.iHeaderId
+FROM tCore_Header_0 h
+JOIN tCore_HeaderData5637_0 eh ON eh.iHeaderId = h.iHeaderId
+JOIN tCore_Data_0 d ON d.iHeaderId = h.iHeaderId
+ JOIN tCore_Data5637_0 eb ON eb.iBodyId = d.iBodyId
+ JOIN tCore_IndtaBodyScreenData_0 bsd on bsd.iBodyId = d.iBodyId
+LEFT JOIN tCore_Data_Tags_0 t ON t.iBodyId = d.iBodyId
+LEFT JOIN mCore_joborder j ON j.iMasterId = t.iTag3008
+LEFT JOIN mCore_shippingline sl ON sl.iMasterId = t.iTag3007
+LEFT JOIN mCore_jobstatus js ON js.iMasterId = t.iTag3009
+LEFT JOIN mCore_port pl ON pl.iMasterId = eh.PortofLoading
+LEFT JOIN mCore_port pd ON pd.iMasterId = eh.PortofDestination
+LEFT JOIN mCore_handleby hb ON hb.iMasterId = t.iTag3038
+LEFT JOIN mCore_branch br ON br.iMasterId = t.iTag3002
+LEFT JOIN mCore_salesman s ON s.iMasterId = t.iTag3010
+LEFT JOIN mCore_operationtype ot ON ot.iMasterId = t.iTag3014
+LEFT JOIN mCore_networktype nt ON nt.iMasterId = t.iTag3011
+LEFT JOIN mCore_servicetype st ON st.iMasterId = t.iTag3016
+LEFT JOIN mCore_shipconsg sc ON sc.iMasterId = t.iTag3017
+LEFT JOIN mCore_CostCenter cc ON cc.iMasterId = t.iTag5
+LEFT JOIN mCore_goodstype gt ON gt.iMasterId = t.iTag3015
+LEFT JOIN mCore_placemaster pm ON pm.iMasterId = eh.PickupPlace
+LEFT JOIN mCore_placemaster dpm ON dpm.iMasterId = eh.DropofPlace
+--LEFT JOIN mCore_Account vcbi on vcbi.iMasterId = eh.VendorCustomBrokerId
+--LEFT JOIN mCore_overseasagent oa on oa.iMasterId = t.iTag3004
+LEFT JOIN mCore_containertype ct on ct.iMasterId = t.iTag3019
+LEFT JOIN mCore_division di ON di.iMasterId = d.iFaTag
+LEFT JOIN mCore_Account ca on ca.iMasterId = d.iBookNo
+WHERE h.iVoucherType IN (5637) and t.iTag3008 = ${selectedJob.jobId} --Ancillary Job 
+UNION ALL
+SELECT 
+   distinct h.sVoucherNo,
+
+   --Header UI (box1)
+    ISNULL(js.sName, '') AS jobStatus,
+    ISNULL(ot.sName, '') AS operationType,
+    ISNULL(st.sName, '') AS serviceType,
+	ISNULL(t.iTag3008, 0) AS jobId,
+    ISNULL(j.sName, '') AS jobName,
+    ISNULL(j.sCode, '') AS jobCode,
+    convert (nvarchar, dbo.IntToDate(h.iDate),103) AS docDate,
+	ISNULL(eh.ServiceOrderId, '') AS serviceOrderId,
+    ISNULL(br.sName, '') AS branch,
+    ISNULL(ca.sName, '') AS customerAcc,
+    ISNULL(hb.sName, '') AS handleBy,
+    ISNULL(s.sName, '') AS salesman,
+    ISNULL(di.sName, '') AS division,
+    ISNULL(cc.sName, '') AS costCenter,
+	--Header UI (box1)
+	--Header UI (box2)
+    ISNULL(eh.PORef, '') AS PORef,
+    ISNULL(sc.sName, '') AS ShippingConsignmentCode,
+    ISNULL(eh.FreightTerms, '') AS freightTerms,
+    ISNULL(sl.sName, '') AS shippingLine,
+   '' AS vessel,
+   '' AS voyage,
+    '' AS portLoading,
+    '' AS portDestination,
+    ISNULL(convert (nvarchar, dbo.IntToDate(eh.PeriodFrom),103),'') AS arrival,
+    ISNULL(convert (nvarchar, dbo.IntToDate(eh.PeriodTo),103),'') AS departure,
+	'' AS finalDestination,
+	ISNULL(eh.BookedContainer, '') AS bookedContainer,
+    ISNULL(gt.sName, '') AS goodsType,
+    ISNULL(eh.DGClass, '') AS dgClass,
+    ISNULL(eh.JobCommodity, '') AS jobCommodity,
+    ISNULL(pm.sName, '') AS pickupPlace,
+    ISNULL(dpm.sName, '') AS dropofPlace,
+    ISNULL(eh.MblNoHeader, '') AS MblNoHeader,
+    ISNULL(eh.HblNoHeader, '') AS HblNoHeader,
+    ISNULL(eh.Weight_KGS_, '') AS weightKgs,
+    ISNULL(eh.Measurement_C_B_M_, '') AS measurementCbm,
+    ISNULL(eh.CargoAwb, '') AS cargoAwb,
+    ISNULL(eb.BayanNo, '') AS bayanNo,
+    '' AS vendorCustId,
+    '' AS bookinType,
+    '' AS overseasAgent,
+    ISNULL(nt.sName, '') AS networkType,
+	ISNULL(eh.Notes, '') AS notes,
+	ISNULL(eh.Notes, '') AS notes,
+	--Header UI (box2)
+	-- body UI
+    ISNULL(ct.sName, '') AS containerType,
+	ISNULL(eb.ContainerNo, '') AS containerNo,
+	ISNULL(eb.SealNo_, '') AS sealNo,
+	ISNULL(bsd.mInput1, 0) AS bAge,
+	ISNULL(bsd.mInput0, 0) AS sAge,
+	ISNULL(convert (nvarchar, dbo.IntToDate(eb.DateShuttle),103),'') AS dateShuttle,
+	ISNULL(convert (nvarchar, dbo.IntToDate(eb.DateAgeIn),103),'') AS dateAgeIn,
+   h.iHeaderId
+FROM tCore_Header_0 h
+JOIN tCore_HeaderData5639_0 eh ON eh.iHeaderId = h.iHeaderId
+JOIN tCore_Data_0 d ON d.iHeaderId = h.iHeaderId
+ JOIN tCore_Data5639_0 eb ON eb.iBodyId = d.iBodyId
+ JOIN tCore_IndtaBodyScreenData_0 bsd on bsd.iBodyId = d.iBodyId
+LEFT JOIN tCore_Data_Tags_0 t ON t.iBodyId = d.iBodyId
+LEFT JOIN mCore_joborder j ON j.iMasterId = t.iTag3008
+LEFT JOIN mCore_shippingline sl ON sl.iMasterId = t.iTag3007
+LEFT JOIN mCore_jobstatus js ON js.iMasterId = t.iTag3009
+--LEFT JOIN mCore_port pl ON pl.iMasterId = eh.PortofLoading
+--LEFT JOIN mCore_port pd ON pd.iMasterId = eh.PortofDestination
+LEFT JOIN mCore_handleby hb ON hb.iMasterId = t.iTag3038
+LEFT JOIN mCore_branch br ON br.iMasterId = t.iTag3002
+LEFT JOIN mCore_salesman s ON s.iMasterId = t.iTag3010
+LEFT JOIN mCore_operationtype ot ON ot.iMasterId = t.iTag3014
+LEFT JOIN mCore_networktype nt ON nt.iMasterId = t.iTag3011
+LEFT JOIN mCore_servicetype st ON st.iMasterId = t.iTag3016
+LEFT JOIN mCore_shipconsg sc ON sc.iMasterId = t.iTag3017
+LEFT JOIN mCore_CostCenter cc ON cc.iMasterId = t.iTag5
+LEFT JOIN mCore_goodstype gt ON gt.iMasterId = t.iTag3015
+LEFT JOIN mCore_placemaster pm ON pm.iMasterId = eh.PickupPlace
+LEFT JOIN mCore_placemaster dpm ON dpm.iMasterId = eh.DropofPlace
+--LEFT JOIN mCore_Account vcbi on vcbi.iMasterId = eh.VendorCustomBrokerId
+--LEFT JOIN mCore_overseasagent oa on oa.iMasterId = t.iTag3004
+LEFT JOIN mCore_containertype ct on ct.iMasterId = t.iTag3019
+LEFT JOIN mCore_division di ON di.iMasterId = d.iFaTag
+LEFT JOIN mCore_Account ca on ca.iMasterId = d.iBookNo
+WHERE h.iVoucherType IN (5639) and t.iTag3008 = ${selectedJob.jobId} --Storage & Handling Job
+UNION ALL
+SELECT 
+   distinct h.sVoucherNo,
+
+   --Header UI (box1)
+    ISNULL(js.sName, '') AS jobStatus,
+    ISNULL(ot.sName, '') AS operationType,
+    ISNULL(st.sName, '') AS serviceType,
+	ISNULL(t.iTag3008, 0) AS jobId,
+    ISNULL(j.sName, '') AS jobName,
+    ISNULL(j.sCode, '') AS jobCode,
+    convert (nvarchar, dbo.IntToDate(h.iDate),103) AS docDate,
+	ISNULL(eh.ServiceOrderId, '') AS serviceOrderId,
+    ISNULL(br.sName, '') AS branch,
+    ISNULL(ca.sName, '') AS customerAcc,
+    ISNULL(hb.sName, '') AS handleBy,
+    ISNULL(s.sName, '') AS salesman,
+    ISNULL(di.sName, '') AS division,
+    ISNULL(cc.sName, '') AS costCenter,
+	--Header UI (box1)
+	--Header UI (box2)
+    ISNULL(eh.PORef, '') AS PORef,
+    ISNULL(sc.sName, '') AS ShippingConsignmentCode,
+    ISNULL(eh.FreightTerms, '') AS freightTerms,
+    ISNULL(sl.sName, '') AS shippingLine,
+   '' AS vessel,
+   '' AS voyage,
+    '' AS portLoading,
+    '' AS portDestination,
+    ISNULL(convert (nvarchar, dbo.IntToDate(eh.loadingDate),103),'') AS arrival,
+    ISNULL(convert (nvarchar, dbo.IntToDate(eh.UnloadingDate),103),'') AS departure,
+	 ISNULL(eh.FinalDestination, '') AS finalDestination,
+	ISNULL(eh.BookedContainer, '') AS bookedContainer,
+    ISNULL(gt.sName, '') AS goodsType,
+    ISNULL(eh.DGClass, '') AS dgClass,
+    ISNULL(eh.JobCommodity, '') AS jobCommodity,
+    ISNULL(pm.sName, '') AS pickupPlace,
+    ISNULL(dpm.sName, '') AS dropofPlace,
+    ISNULL(eh.MblNoHeader, '') AS MblNoHeader,
+    ISNULL(eh.HblNoHeader, '') AS HblNoHeader,
+    ISNULL(eh.Weight_KGS_, '') AS weightKgs,
+    ISNULL(eh.Measurement_C_B_M_, '') AS measurementCbm,
+    ISNULL(eh.CargoAwb, '') AS cargoAwb,
+    ISNULL(eb.BayanNo, '') AS bayanNo,
+    '' AS vendorCustId,
+    '' AS bookinType,
+     ISNULL(oa.sName, '') AS overseasAgent,
+    ISNULL(nt.sName, '') AS networkType,
+	ISNULL(eh.Notes, '') AS notes,
+	ISNULL(eh.Notes, '') AS notes,
+	--Header UI (box2)
+	-- body UI
+    ISNULL(ct.sName, '') AS containerType,
+	ISNULL(eb.ContainerNo, '') AS containerNo,
+	ISNULL(eb.SealNo_, '') AS sealNo,
+	ISNULL(bsd.mInput1, 0) AS bAge,
+	ISNULL(bsd.mInput0, 0) AS sAge,
+	ISNULL(convert (nvarchar, dbo.IntToDate(eb.DateShuttle),103),'') AS dateShuttle,
+	ISNULL(convert (nvarchar, dbo.IntToDate(eb.DateAgeIn),103),'') AS dateAgeIn,
+   h.iHeaderId
+FROM tCore_Header_0 h
+JOIN tCore_HeaderData5640_0 eh ON eh.iHeaderId = h.iHeaderId
+JOIN tCore_Data_0 d ON d.iHeaderId = h.iHeaderId
+ JOIN tCore_Data5640_0 eb ON eb.iBodyId = d.iBodyId
+ JOIN tCore_IndtaBodyScreenData_0 bsd on bsd.iBodyId = d.iBodyId
+LEFT JOIN tCore_Data_Tags_0 t ON t.iBodyId = d.iBodyId
+LEFT JOIN mCore_joborder j ON j.iMasterId = t.iTag3008
+LEFT JOIN mCore_shippingline sl ON sl.iMasterId = t.iTag3007
+LEFT JOIN mCore_jobstatus js ON js.iMasterId = t.iTag3009
+--LEFT JOIN mCore_port pl ON pl.iMasterId = eh.PortofLoading
+--LEFT JOIN mCore_port pd ON pd.iMasterId = eh.PortofDestination
+LEFT JOIN mCore_handleby hb ON hb.iMasterId = t.iTag3038
+LEFT JOIN mCore_branch br ON br.iMasterId = t.iTag3002
+LEFT JOIN mCore_salesman s ON s.iMasterId = t.iTag3010
+LEFT JOIN mCore_operationtype ot ON ot.iMasterId = t.iTag3014
+LEFT JOIN mCore_networktype nt ON nt.iMasterId = t.iTag3011
+LEFT JOIN mCore_servicetype st ON st.iMasterId = t.iTag3016
+LEFT JOIN mCore_shipconsg sc ON sc.iMasterId = t.iTag3017
+LEFT JOIN mCore_CostCenter cc ON cc.iMasterId = t.iTag5
+LEFT JOIN mCore_goodstype gt ON gt.iMasterId = t.iTag3015
+LEFT JOIN mCore_placemaster pm ON pm.iMasterId = eh.PickupPlace
+LEFT JOIN mCore_placemaster dpm ON dpm.iMasterId = eh.DropofPlace
+--LEFT JOIN mCore_Account vcbi on vcbi.iMasterId = eh.VendorCustomBrokerId
+LEFT JOIN mCore_overseasagent oa on oa.iMasterId = t.iTag3004
+LEFT JOIN mCore_containertype ct on ct.iMasterId = t.iTag3019
+LEFT JOIN mCore_division di ON di.iMasterId = d.iFaTag
+LEFT JOIN mCore_Account ca on ca.iMasterId = d.iBookNo
+WHERE h.iVoucherType IN (5640) and t.iTag3008 = ${selectedJob.jobId} --Heavy Lift Job
+UNION ALL
+SELECT 
+   distinct h.sVoucherNo,
+
+   --Header UI (box1)
+    ISNULL(js.sName, '') AS jobStatus,
+    ISNULL(ot.sName, '') AS operationType,
+    ISNULL(st.sName, '') AS serviceType,
+	ISNULL(t.iTag3008, 0) AS jobId,
+    ISNULL(j.sName, '') AS jobName,
+    ISNULL(j.sCode, '') AS jobCode,
+    convert (nvarchar, dbo.IntToDate(h.iDate),103) AS docDate,
+	'' AS serviceOrderId,
+    ISNULL(br.sName, '') AS branch,
+    ISNULL(ca.sName, '') AS customerAcc,
+    ISNULL(hb.sName, '') AS handleBy,
+    ISNULL(s.sName, '') AS salesman,
+    ISNULL(di.sName, '') AS division,
+    ISNULL(cc.sName, '') AS costCenter,
+	--Header UI (box1)
+	--Header UI (box2)
+    ISNULL(eh.PORef, '') AS PORef,
+    ISNULL(sc.sName, '') AS ShippingConsignmentCode,
+    ISNULL(eh.FreightTerms, '') AS freightTerms,
+    ISNULL(sl.sName, '') AS shippingLine,
+   ISNULL(v.sName, '') AS vessel,
+   ISNULL(eh.VoyageNo, '') AS voyage,
+    ISNULL(pl.sName, '') AS portLoading,
+    ISNULL(pd.sName, '') AS portDestination,
+    ISNULL(convert (nvarchar, dbo.IntToDate(eh.ETADate),103),'') AS arrival,
+    ISNULL(convert (nvarchar, dbo.IntToDate(eh.ShippedonBoard_ETDDate_),103),'') AS departure,
+	 ISNULL(eh.FinalDestination, '') AS finalDestination,
+	'' AS bookedContainer,
+    ISNULL(gt.sName, '') AS goodsType,
+    ISNULL(eh.DGClass, '') AS dgClass,
+    ISNULL(eh.JobCommodity, '') AS jobCommodity,
+    ISNULL(pm.sName, '') AS pickupPlace,
+    ISNULL(dpm.sName, '') AS dropofPlace,
+    ISNULL(eh.MblNoHeader, '') AS MblNoHeader,
+    ISNULL(eh.HblNoHeader, '') AS HblNoHeader,
+    ISNULL(eh.Weight_KGS_, '') AS weightKgs,
+    ISNULL(eh.Measurement_C_B_M_, '') AS measurementCbm,
+    ISNULL(eh.CargoAwb, '') AS cargoAwb,
+    ISNULL(eb.BayanNo, '') AS bayanNo,
+    ISNULL(vcbi.sName, '') AS vendorCustId,
+    ISNULL(eh.BookingType, '') AS bookinType,
+     ISNULL(oa.sName, '') AS overseasAgent,
+    ISNULL(nt.sName, '') AS networkType,
+	ISNULL(eh.Notes, '') AS notes,
+	ISNULL(eh.Notes, '') AS notes,
+	--Header UI (box2)
+	-- body UI
+    ISNULL(ct.sName, '') AS containerType,
+	ISNULL(eb.ContainerNo, '') AS containerNo,
+	ISNULL(eb.SealNo_, '') AS sealNo,
+	ISNULL(bsd.mInput1, 0) AS bAge,
+	ISNULL(bsd.mInput0, 0) AS sAge,
+	ISNULL(convert (nvarchar, dbo.IntToDate(eb.DateShuttle),103),'') AS dateShuttle,
+	ISNULL(convert (nvarchar, dbo.IntToDate(eb.DateAgeIn),103),'') AS dateAgeIn,
+   h.iHeaderId
+FROM tCore_Header_0 h
+JOIN tCore_HeaderData5641_0 eh ON eh.iHeaderId = h.iHeaderId
+JOIN tCore_Data_0 d ON d.iHeaderId = h.iHeaderId
+ JOIN tCore_Data5641_0 eb ON eb.iBodyId = d.iBodyId
+ JOIN tCore_IndtaBodyScreenData_0 bsd on bsd.iBodyId = d.iBodyId
+LEFT JOIN tCore_Data_Tags_0 t ON t.iBodyId = d.iBodyId
+LEFT JOIN mCore_joborder j ON j.iMasterId = t.iTag3008
+LEFT JOIN mCore_shippingline sl ON sl.iMasterId = t.iTag3007
+LEFT JOIN mCore_jobstatus js ON js.iMasterId = t.iTag3009
+LEFT JOIN mCore_port pl ON pl.iMasterId = eh.PortofLoading
+LEFT JOIN mCore_port pd ON pd.iMasterId = eh.PortofDestination
+LEFT JOIN mCore_handleby hb ON hb.iMasterId = t.iTag3038
+LEFT JOIN mCore_branch br ON br.iMasterId = t.iTag3002
+LEFT JOIN mCore_salesman s ON s.iMasterId = t.iTag3010
+LEFT JOIN mCore_operationtype ot ON ot.iMasterId = t.iTag3014
+LEFT JOIN mCore_networktype nt ON nt.iMasterId = t.iTag3011
+LEFT JOIN mCore_servicetype st ON st.iMasterId = t.iTag3016
+LEFT JOIN mCore_shipconsg sc ON sc.iMasterId = t.iTag3017
+LEFT JOIN mCore_CostCenter cc ON cc.iMasterId = t.iTag5
+LEFT JOIN mCore_goodstype gt ON gt.iMasterId = t.iTag3015
+LEFT JOIN mCore_placemaster pm ON pm.iMasterId = eh.PickupPlace
+LEFT JOIN mCore_placemaster dpm ON dpm.iMasterId = eh.DropofPlace
+LEFT JOIN mCore_Account vcbi on vcbi.iMasterId = eh.VendorCustomBrokerId
+LEFT JOIN mCore_overseasagent oa on oa.iMasterId = t.iTag3004
+LEFT JOIN mCore_containertype ct on ct.iMasterId = t.iTag3019
+LEFT JOIN mCore_vessel v ON v.iMasterId = t.iTag3037
+LEFT JOIN mCore_division di ON di.iMasterId = d.iFaTag
+LEFT JOIN mCore_Account ca on ca.iMasterId = d.iBookNo
+WHERE h.iVoucherType IN (5641) and t.iTag3008 = ${selectedJob.jobId} --Freight Forwarding`; // 🔁 Customize the query
+        // console.log("jobRegQuery", jobRegQuery);
+        const jobRegRequestData = {
+          data: [
+            {
+              Query: jobRegQuery,
+            },
+          ],
+        };
+
+        const jobRegResponse = await focusFetchDataFromApi(
+          "utility/executesqlquery",
+          jobRegRequestData,
+          sessionId,
+          setIsLoading
+        );
+
+        if (jobRegResponse.error) {
+          console.error("Error fetching jobs:", jobRegResponse.error);
+          alert(
+            `Error fetching jobs: ${
+              jobRegResponse?.error?.message || jobRegResponse.error
+            }`
+          );
+          setJobDetails([]);
+          return;
+        }
+
+        if (
+          jobRegResponse?.result === 1 &&
+          jobRegResponse?.data?.[0]?.Table?.length > 0
+        ) {
+          const jobData = jobRegResponse.data[0].Table; // Get first job detail row
+          console.log("fetchJobDetails", jobData);
+          setJobDetails(jobData); // ✅ Store in state
+        }
+      } catch (err) {
+        console.log("Fetch error:", err);
+        setJobDetails([]);
+      }
+    }
+
+    if (selectedJob?.jobId) {
+      fetchJobDetails();
+    }
+  }, []);
+  const onExport = async () => {
+    // Export logic here
+    if (jobDetails.length === 0) {
+      alert("No data available for export.");
+      return;
+    }
+    generateJobDetailsExcel(jobDetails);
+  };
+
+  return (
+    <>
+      {/* 🔹 Tab Buttons */}
+      <div className="tabs">
+        {["Basic Info", "Transport Details"].map((tab) => (
+          <button
+            key={tab}
+            className={`tab ${activeBodyTab === tab ? "active" : ""}`}
+            onClick={() => setJobDetailsTab(tab)}
+          >
+            {tab}
+          </button>
+        ))}
+        {jobDetails.length > 0 && (
+          <button
+            className="btn btn_post"
+            onClick={onExport}
+            style={{
+              position: "absolute",
+              right: "20px",
+              // // background: "transparent",
+              // border: "none",
+              // fontSize: "18px",
+              cursor: "pointer",
+              // color: "#333",
+            }}
+          >
+            Export to Excel
+          </button>
+        )}
+      </div>
+
+      {/* 🔹 Tab Content */}
+      <div className="body-tab-content">
+        {activeBodyTab === "Basic Info" && (
+          <JobDetailsBasicInfo data={jobDetails} />
+        )}
+        {activeBodyTab === "Transport Details" && (
+          <JobDetailsTransport data={jobDetails} />
+        )}
+      </div>
+    </>
+  );
+}
+
+export default JobDetailsTab;

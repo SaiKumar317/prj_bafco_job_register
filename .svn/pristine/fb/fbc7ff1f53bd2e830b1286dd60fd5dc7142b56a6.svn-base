@@ -1,0 +1,173 @@
+.joblist-container {
+  padding: 10px;
+  font-family: Arial, sans-serif;
+}
+
+/* 🔹 Filters Bar */
+.filters-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+  gap: 8px;
+  border-style: solid;
+  border-width: 2px;
+  border-color: #97b1c2;
+  border-radius: 10px;
+  padding: 10px;
+  margin: 10px;
+}
+
+.filters-bar input[type="date"],
+.filters-bar .search-box {
+  padding: 4px 6px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+}
+
+.filters-bar label {
+  font-size: 13px;
+}
+
+.radio-group label {
+  margin-right: 6px;
+  font-size: 13px;
+}
+
+.btn {
+  padding: 5px 10px;
+  font-size: 13px;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.btn-blue {
+  background: #3da6ff;
+  color: #fff;
+}
+
+.btn-light {
+  background: #f1f1f1;
+  color: #000;
+}
+
+.btn-green {
+  background: #4CAF50;
+  color: white;
+}
+
+/* 🔹 Table */
+.job-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  font-size: 13px;
+}
+
+.job-table th {
+  /* background: #f4f6f9; */
+  background: #44799b;
+  border: 1px solid #ccc;
+  padding: 6px;
+  text-align: left;
+}
+
+.job-table td {
+  border: 1px solid #ccc;
+  padding: 6px;
+}
+
+.job-table tbody tr:hover {
+  background: #f0eded;
+  cursor: pointer;
+}
+
+/* 🔹 Job link (orange clickable) */
+.job-link {
+  color: #ff6600;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* 🔹 Filter Row */
+.filter-row th {
+  padding: 2px;
+}
+
+.filter-input {
+  width: 100%;
+  padding: 3px;
+  font-size: 12px;
+  border: 1px solid #ddd;
+  border-radius: 2px;
+}
+
+.filters-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  align-items: flex-end;
+  margin-bottom: 20px;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.filter-group label {
+  font-size: 13px;
+  color: #44799b;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.radio-group {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.checkbox-group {
+  margin-top: 20px; /* align with others */
+}
+
+.col-ship-line {
+  width: 160px;
+  min-width: 160px; /* optional: to ensure it doesn't shrink */
+  max-width: 160px; /* optional: to prevent it from growing too */
+}
+
+
+
+ #table-header,
+ th {
+   top: 0;
+   position: sticky;
+   z-index: 10;
+ }
+
+
+
+
+
+
+
+ .table-wrap-joblist {
+   max-height: 90vh;
+   /* margin-left: 10px; */
+   width: max-content;
+   overflow-x: auto;
+   max-width: 95vw; 
+  }
+
+  
+ .even-row {
+   background-color: #f2f2f2;
+  }
+  
+  .odd-row {
+    background-color: #ffffff;
+  }
+

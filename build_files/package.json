@@ -1,0 +1,17 @@
+{
+  "name": "accentiv_india_backend",
+  "version": "1.0.0",
+
+  "main": "index.js",
+  "scripts": {
+    "start": "(pm2 delete %npm_package_config_processName% || echo) && pm2 save && pm2 start C:\\inetpub\\wwwroot\\%npm_package_config_projectPath%\\server.js --name %npm_package_config_processName% && pm2 save && pm2 logs",
+    "restart": "pm2 start %npm_package_config_processName% && pm2 save",
+    "delete": "(pm2 delete %npm_package_config_processName% || echo) && pm2 save"
+  },
+  "config": {
+    "processName": "job_register_server",
+    "projectPath": "\\prj_bafco_job_register\\job_register_server"
+  },
+  "homepage": ".",
+  "author": ""
+}

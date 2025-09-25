@@ -1,13 +1,33 @@
 import React, { Component } from "react";
+import { JobContext } from "../context/JobContext";
 import HeaderTabs from "../components/jobDetails/HeaderTabs";
 import BodyTabs from "../components/jobDetails/BodyTabs";
+import { focusFetchDataFromApi } from "../services/focusFetchAPI";
+import { generateCostEntryPdf } from "../utils/generateCostEntrypdf";
+
 import "../styles/jobDetails.css";
+import LoadingView from "../components/common/LoadingView";
 
 class JobDetails extends Component {
   state = {
-    activeHeaderTab: "Notes",
-    activeBodyTab: "Cost Entry",
+    activeHeaderTab: "Job/Inv",
+    // activeBodyTab: "Cost Entry",
+    activeBodyTab: "Job Details",
+    previousJobId: null, // To track changes in selectedJob
+    initialCostDate: "",
   };
+  static contextType = JobContext;
+
+  componentDidUpdate(prevProps, prevState) {
+    const { selectedJob } = this.context;
+
+    // Check if selectedJob has changed
+    if (selectedJob && selectedJob.jobId !== this.state.previousJobId) {
+      this.setState({ previousJobId: selectedJob.jobId }, () => {
+        this.context.fetchCostEntryDetails(selectedJob.jobId);
+      });
+    }
+  }
 
   setHeaderTab = (tab) => {
     this.setState({ activeHeaderTab: tab });
@@ -17,43 +37,146 @@ class JobDetails extends Component {
     this.setState({ activeBodyTab: tab });
   };
 
+  onExportpdf = async () => {
+    const { costEntry, selectedJob, costDate } = this.context;
+    // Export logic here
+    if (costEntry.length === 0) {
+      alert("No data available for Preview Cost Sheet.");
+      return;
+    }
+
+    generateCostEntryPdf(costEntry, selectedJob, costDate);
+  };
+  handleBackClick = () => {
+    this.setState(
+      {
+        activeHeaderTab: "Job/Inv",
+        activeBodyTab: "Job Details",
+        previousJobId: null,
+        initialCostDate: "",
+      },
+      () => {
+        // After resetting state, navigate back
+        this.props.history.push("/");
+      }
+    );
+  };
+
   render() {
-    const { activeHeaderTab, activeBodyTab } = this.state;
+    const { activeHeaderTab, activeBodyTab, initialCostDate } = this.state;
+    const {
+      selectedJob,
+      isLoading,
+      costDate,
+      setCostDate,
+      fetchCostEntryDetails,
+    } = this.context;
 
     return (
       <div className="jobdetails-container">
+        <p className="module_name">Job Costing</p>
+        {isLoading && <LoadingView />}
         {/* Header Form Section */}
         <div className="job-header">
           <div>
             <div className="job-fields">
-              <div>
-                <label>Job Id</label>
-                <input type="text" value="13326/25-07" readOnly />
+              <div className="filter-group">
+                <label htmlFor="job-id">Job Id</label>
+                <input
+                  className="input-field"
+                  id="job-id"
+                  type="text"
+                  value={selectedJob.jobName}
+                  readOnly
+                />
               </div>
-              <div>
-                <label>Cost Date</label>
-                <input type="date" defaultValue="2025-07-30" />
+
+              <div className="filter-group">
+                <label htmlFor="cost-date">Cost Date</label>
+                <input
+                  className="input-field"
+                  id="cost-date"
+                  type="date"
+                  defaultValue={costDate}
+                  onChange={(e) => setCostDate(e.target.value)}
+                  onFocus={() => this.setState({ initialCostDate: costDate })}
+                  onBlur={() => {
+                    if (costDate !== initialCostDate) {
+                      fetchCostEntryDetails(selectedJob?.jobId);
+                    }
+                  }}
+                />
               </div>
-              <div>
-                <label>Total Sales</label>
-                <input type="text" value="11,437.00" readOnly />
+
+              <div className="filter-group">
+                <label htmlFor="total-sales">Total Sales</label>
+                <input
+                  className="input-field"
+                  id="total-sales"
+                  type="text"
+                  value={selectedJob.totalSales}
+                  readOnly
+                />
               </div>
-              <div>
-                <label>Total Cost</label>
-                <input type="text" value="8,320.00" readOnly />
+
+              <div className="filter-group">
+                <label htmlFor="total-cost">Total Cost</label>
+                <input
+                  className="input-field"
+                  id="total-cost"
+                  type="text"
+                  value={selectedJob.totalCost}
+                  readOnly
+                />
               </div>
-              <div>
-                <label>Profit/(loss) - NoTax</label>
-                <span className="profit-box">3,117.00</span>
+
+              <div className="filter-group">
+                <label htmlFor="profit-loss">Profit/(Loss) - NoTax</label>
+                <input
+                  id="profit-loss"
+                  className={`input-field profit-box ${
+                    selectedJob.profitLossNoTax < 0 ? "negative" : ""
+                  }`}
+                  type="text"
+                  value={selectedJob.profitLossNoTax}
+                  readOnly
+                />
               </div>
             </div>
-            <div className="job-buttons-below">
-              <button className="btn btn-green">Preview Cost Sheet</button>
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                paddingRight: "10px",
+              }}
+            >
+              <div className="job-buttons-below">
+                <button className="btn btn_post" onClick={this.onExportpdf}>
+                  Preview Cost Sheet
+                </button>
+              </div>
+              <div className="job-buttons-below">
+                <button className="btn btn_post" onClick={this.handleBackClick}>
+                  Back
+                </button>
+              </div>
             </div>
             <div className="job-checkboxes">
-              <label>
-                <input type="checkbox" /> Cost Locked?
-              </label>
+              <label htmlFor="cost-locked">Cost Locked?</label>
+              <input
+                id="cost-locked"
+                style={{
+                  cursor: "not-allowed",
+                  // accentColor: "#ec6363ff", // Make it look gray
+                  // opacity: 0.6, // Dim it
+                  marginLeft: "5px",
+                  // transform: "scale(1.1)",
+                }}
+                type="checkbox"
+                checked={selectedJob?.costLocked}
+                // disabled={true}
+              />{" "}
               {/* <label>
                 <input type="checkbox" /> Cost Posted?
               </label>

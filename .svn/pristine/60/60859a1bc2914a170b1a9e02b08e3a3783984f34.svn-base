@@ -1,0 +1,11 @@
+import React from "react";
+
+function JobDetailsBasicInfo({ data }) {
+  return (
+    <>
+      <p>Basic Info Tab</p>
+    </>
+  );
+}
+
+export default JobDetailsBasicInfo;

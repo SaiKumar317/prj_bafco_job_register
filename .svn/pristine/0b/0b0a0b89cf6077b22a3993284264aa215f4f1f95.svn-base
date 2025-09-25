@@ -1,0 +1,444 @@
+import React, { Component, createContext } from "react";
+import { Focus8WAPI, sessionId, companyCode, AccountDate } from "../mainClient";
+import getSessionId from "../sessionId";
+import { focusFetchDataFromApi } from "../services/focusFetchAPI";
+
+export const JobContext = createContext();
+
+export class JobProvider extends Component {
+  state = {
+    jobs: [],
+    selectedJob: null,
+    sessionId: null,
+    accountDate: null,
+    isLoading: false,
+    costEntry: [],
+    costDate: new Date().toISOString().split("T")[0], // Default to today's date
+  };
+
+  setSelectedJob = (job) => {
+    this.setState({ selectedJob: job });
+  };
+
+  setCostEntry = (entries) => {
+    this.setState({ costEntry: entries });
+  };
+
+  setCostDate = (date) => {
+    this.setState({ costDate: date });
+  };
+
+  componentDidMount() {
+    getSessionId();
+    this.waitForResponse();
+  }
+
+  waitForResponse = async () => {
+    if (typeof sessionId !== "undefined") {
+      this.setState({
+        sessionId: sessionId,
+        accountDate: AccountDate,
+      });
+      console.log("Session ID and Account Date set.");
+    } else {
+      console.log("Waiting for sessionId...");
+      setTimeout(this.waitForResponse, 1); // retry until sessionId is available
+    }
+  };
+
+  setIsLoading = (status) => {
+    this.setState({ isLoading: status });
+  };
+
+  fetchJobs = async (filters) => {
+    try {
+      const { sessionId, accountDate } = this.state;
+
+      if (!sessionId) {
+        console.error("No sessionId available yet.");
+        return;
+      }
+      console.log("fetchJobs", filters);
+
+      const requestData = {
+        CompanyCode: companyCode,
+        SessionId: sessionId,
+        StartDate: filters.startDate,
+        EndDate: filters.endDate,
+        IgnoreDate: filters.ignoreDate,
+        Type: filters.type,
+        Search: filters.search,
+      };
+
+      const filterQuery = `${
+        !filters.ignoreDate
+          ? ` and h.iDate between dbo.dateToInt('${filters.startDate}') and dbo.dateToInt('${filters.endDate}')`
+          : ""
+      }
+${
+  filters?.type === "Cntr"
+    ? ` and isNULL(eb.ContainerNo,'') like '%${filters.search}%'`
+    : ""
+} ${
+        filters.type === "BL"
+          ? ` and (isNULL(eh.HblNoHeader,'') like '%${filters.search}%' or isNULL(eh.MblNoHeader,'') like '%${filters.search}%') `
+          : ""
+      } ${
+        filters?.type === "Bayan"
+          ? ` and isNULL(eb.BayanNo,'') like '%${filters.search}%'`
+          : ""
+      }`;
+      const jobRegQuery = `
+      SELECT 
+   distinct h.sVoucherNo,
+    convert (nvarchar, dbo.IntToDate(h.iDate),103) AS docDate,
+    --ISNULL(eb.ContainerNo, '') AS ContainerNo,
+    --ISNULL(eh.HblNoHeader, '') AS HBLNo,
+    --ISNULL(eb.BayanNo, '') AS BayanNo,
+    ISNULL(t.iTag3008, 0) AS jobId,
+    ISNULL(j.sName, '') AS jobName,
+    ISNULL(j.sCode, '') AS jobCode,
+    ISNULL(eh.ShippingConsignmentCode, '') AS ShippingConsignmentCode,
+    ISNULL(eh.PORef, '') AS PORef,
+    ISNULL(sl.sName, '') AS shippingLine,
+    ISNULL(js.sName, '') AS jobStatus,
+    ISNULL(convert (nvarchar, dbo.IntToDate(eh.Arrival),103),'') AS Arrival,
+    ISNULL(pl.sName, '') AS portLoading,
+    ISNULL(pd.sName, '') AS portDestination,
+    ISNULL(eh.MblNoHeader, '') AS MblNoHeader,
+    ISNULL(eh.HblNoHeader, '') AS HblNoHeader,
+    ISNULL(hb.sName, '') AS handleBy,
+    ISNULL(eh.FreightTerms, '') AS FreightTerms,
+    ISNULL(br.sName, '') AS branch,
+    ISNULL(s.sName, '') AS salesman,
+    ISNULL(ot.sName, '') AS operationType,
+    ISNULL(ca.sName, '') AS customerAcc,
+    ISNULL(nt.sName, '') AS networkType,
+	ISNULL(eh.TotalImportCntr20F, '') AS TotalImportCntr20F,
+	ISNULL(eh.TotalImportCntr40F, '') AS TotalImportCntr40F,
+  ISNULL(eh.Notes, '') AS notes
+FROM tCore_Header_0 h
+JOIN tCore_HeaderData5634_0 eh ON eh.iHeaderId = h.iHeaderId
+JOIN tCore_Data_0 d ON d.iHeaderId = h.iHeaderId
+LEFT JOIN tCore_Data5634_0 eb ON eb.iBodyId = d.iBodyId
+LEFT JOIN tCore_Data_Tags_0 t ON t.iBodyId = d.iBodyId
+LEFT JOIN mCore_joborder j ON j.iMasterId = t.iTag3008
+LEFT JOIN mCore_shippingline sl ON sl.iMasterId = t.iTag3007
+LEFT JOIN mCore_jobstatus js ON js.iMasterId = t.iTag3009
+LEFT JOIN mCore_port pl ON pl.iMasterId = eh.AirportofLoading
+LEFT JOIN mCore_port pd ON pd.iMasterId = eh.Airportofdestination
+LEFT JOIN mCore_handleby hb ON hb.iMasterId = t.iTag3038
+LEFT JOIN mCore_branch br ON br.iMasterId = t.iTag3002
+LEFT JOIN mCore_salesman s ON s.iMasterId = t.iTag3010
+LEFT JOIN mCore_operationtype ot ON ot.iMasterId = t.iTag3014
+LEFT JOIN mCore_networktype nt ON nt.iMasterId = t.iTag3011
+LEFT JOIN mCore_Account ca on ca.iMasterId = d.iBookNo
+WHERE h.iVoucherType IN (5634)--Air Cargo Job 
+${filterQuery}
+      UNION ALL
+      SELECT 
+   distinct h.sVoucherNo,
+    convert (nvarchar, dbo.IntToDate(h.iDate),103) AS docDate,
+    --ISNULL(eb.ContainerNo, '') AS ContainerNo,
+    --ISNULL(eh.HblNoHeader, '') AS HBLNo,
+    --ISNULL(eb.BayanNo, '') AS BayanNo,
+    ISNULL(t.iTag3008, 0) AS jobId,
+    ISNULL(j.sName, '') AS jobName,
+    ISNULL(j.sCode, '') AS jobCode,
+    ISNULL(eh.ShippingConsignmentCode, '') AS ShippingConsignmentCode,
+    ISNULL(eh.PORef, '') AS PORef,
+    ISNULL(sl.sName, '') AS shippingLine,
+    ISNULL(js.sName, '') AS jobStatus,
+    ISNULL(convert (nvarchar, dbo.IntToDate(eh.ServiceStartDate),103),'') AS Arrival,
+    ISNULL(pl.sName, '') AS portLoading,
+    ISNULL(pd.sName, '') AS portDestination,
+    ISNULL(eh.MblNoHeader, '') AS MblNoHeader,
+    ISNULL(eh.HblNoHeader, '') AS HblNoHeader,
+    ISNULL(hb.sName, '') AS handleBy,
+    ISNULL(eh.FreightTerms, '') AS FreightTerms,
+    ISNULL(br.sName, '') AS branch,
+    ISNULL(s.sName, '') AS salesman,
+    ISNULL(ot.sName, '') AS operationType,
+    ISNULL(ca.sName, '') AS customerAcc,
+    ISNULL(nt.sName, '') AS networkType,
+	ISNULL(eh.TotalImportCntr20F, '') AS TotalImportCntr20F,
+	ISNULL(eh.TotalImportCntr40F, '') AS TotalImportCntr40F,
+  ISNULL(eh.Notes, '') AS notes
+FROM tCore_Header_0 h
+JOIN tCore_HeaderData5637_0 eh ON eh.iHeaderId = h.iHeaderId
+JOIN tCore_Data_0 d ON d.iHeaderId = h.iHeaderId
+LEFT JOIN tCore_Data5637_0 eb ON eb.iBodyId = d.iBodyId
+LEFT JOIN tCore_Data_Tags_0 t ON t.iBodyId = d.iBodyId
+LEFT JOIN mCore_joborder j ON j.iMasterId = t.iTag3008
+LEFT JOIN mCore_shippingline sl ON sl.iMasterId = t.iTag3007
+LEFT JOIN mCore_jobstatus js ON js.iMasterId = t.iTag3009
+LEFT JOIN mCore_port pl ON pl.iMasterId = eh.PortofLoading
+LEFT JOIN mCore_port pd ON pd.iMasterId = eh.PortofDestination
+LEFT JOIN mCore_handleby hb ON hb.iMasterId = t.iTag3038
+LEFT JOIN mCore_branch br ON br.iMasterId = t.iTag3002
+LEFT JOIN mCore_salesman s ON s.iMasterId = t.iTag3010
+LEFT JOIN mCore_operationtype ot ON ot.iMasterId = t.iTag3014
+LEFT JOIN mCore_networktype nt ON nt.iMasterId = t.iTag3011
+LEFT JOIN mCore_Account ca on ca.iMasterId = d.iBookNo
+WHERE h.iVoucherType IN (5637)--Ancillary Job
+${filterQuery}
+
+      `;
+
+      const jobRegRequestData = {
+        data: [
+          {
+            Query: `${jobRegQuery}`,
+          },
+        ],
+      };
+
+      const jobRegResponse = await focusFetchDataFromApi(
+        "utility/executesqlquery",
+        jobRegRequestData,
+        sessionId,
+        this.setIsLoading
+      );
+
+      if (jobRegResponse.error) {
+        console.error("Error fetching jobs:", jobRegResponse.error);
+        this.setState({ jobs: [] });
+        alert(
+          `Error fetching jobs: ${
+            jobRegResponse?.error?.message || jobRegResponse.error
+          }`
+        );
+        return;
+      }
+      if (
+        jobRegResponse &&
+        jobRegResponse?.data &&
+        jobRegResponse?.result === 1 &&
+        jobRegResponse?.data?.[0]?.Table &&
+        jobRegResponse?.data?.[0]?.Table?.length > 0
+      ) {
+        const jobs = jobRegResponse.data?.[0]?.Table || [];
+        console.log("Fetched jobs:", jobs);
+        // get all jobIds
+        const jobIds = jobs.map((job) => job.jobId).filter((id) => id !== 0);
+        console.log("Job IDs:", jobIds);
+        const totalSalesQuery = `
+      select  ISNULL(t.iTag3008, 0) AS jobId ,sum(i.mGross) totalSales
+from tCore_Header_0 h
+join tCore_Data_0 d on d.iHeaderId = h.iHeaderId
+join tCore_Indta_0 i on i.iBodyId = d.iBodyId
+LEFT JOIN tCore_Data_Tags_0 t ON t.iBodyId = d.iBodyId
+where h.iVoucherType = 3332 and ISNULL(t.iTag3008, 0) in (
+  ${jobIds.join(",")}
+)
+group by t.iTag3008`;
+        const totalCostQuery = `
+select  ISNULL(t.iTag3008, 0) AS jobId, sum(i.mGross) totalCost
+from tCore_Header_0 h
+join tCore_Data_0 d on d.iHeaderId = h.iHeaderId
+join tCore_Indta_0 i on i.iBodyId = d.iBodyId
+LEFT JOIN tCore_Data_Tags_0 t ON t.iBodyId = d.iBodyId
+where h.iVoucherType in (772,776,777,778) and ISNULL(t.iTag3008, 0) in (
+  ${jobIds.join(",")}
+)
+group by t.iTag3008`;
+        const totalSalesRequestData = {
+          data: [{ Query: `${totalSalesQuery}` }],
+        };
+
+        const totalCostRequestData = {
+          data: [{ Query: `${totalCostQuery}` }],
+        };
+
+        const totalSalesResponse = await focusFetchDataFromApi(
+          "utility/executesqlquery",
+          totalSalesRequestData,
+          sessionId,
+          this.setIsLoading
+        );
+        const totalCostResponse = await focusFetchDataFromApi(
+          "utility/executesqlquery",
+          totalCostRequestData,
+          sessionId,
+          this.setIsLoading
+        );
+        // merge totalSales to jobs based on jobId
+        if (
+          totalSalesResponse &&
+          totalSalesResponse.data &&
+          totalSalesResponse.result === 1 &&
+          totalSalesResponse.data[0].Table &&
+          totalSalesResponse.data[0].Table.length > 0
+        ) {
+          // Create a map for faster lookup
+          const salesMap = new Map(
+            totalSalesResponse.data[0].Table.map((item) => [
+              item.jobId,
+              item.totalSales,
+            ])
+          );
+
+          // Assign totalSales to each job, default to 0 if not found
+          jobs.forEach((job) => {
+            job.totalSales = salesMap.get(job.jobId) || 0;
+          });
+        } else {
+          // Even if no totalSales data, make sure each job gets totalSales = 0
+          jobs.forEach((job) => {
+            job.totalSales = 0;
+          });
+        }
+
+        // Merge totalCost data
+        if (
+          totalCostResponse &&
+          totalCostResponse.data &&
+          totalCostResponse.result === 1 &&
+          totalCostResponse.data[0].Table &&
+          totalCostResponse.data[0].Table.length > 0
+        ) {
+          const costMap = new Map(
+            totalCostResponse.data[0].Table.map((item) => [
+              item.jobId,
+              item.totalCost,
+            ])
+          );
+
+          jobs.forEach((job) => {
+            job.totalCost = costMap.get(job.jobId) || 0;
+          });
+        } else {
+          jobs.forEach((job) => {
+            job.totalCost = 0;
+          });
+        }
+        console.log("Jobs with totals:", jobs);
+        // add profitLossNoTax field to each job
+        jobs.forEach((job) => {
+          job.profitLossNoTax = (job?.totalSales || 0) - (job?.totalCost || 0);
+        });
+
+        this.setState({ jobs });
+      }
+    } catch (error) {
+      console.error("Error fetching jobs:", error);
+    }
+  };
+
+  setJobs = (updatedJobs) => {
+    this.setState({ jobs: updatedJobs });
+  };
+
+  fetchCostEntryDetails = async (jobId) => {
+    // Replace this with your actual API call or logic
+    console.log("Fetching cost entry details for jobId:", jobId);
+    try {
+      const { sessionId, accountDate, costDate } = this.state;
+
+      if (!sessionId) {
+        console.error("No sessionId available yet.");
+        return;
+      }
+
+      const costEntryQuery = `
+ SELECT 
+   distinct h.sVoucherNo,
+    convert (nvarchar, dbo.IntToDate(h.iDate),103) AS docDate,
+    ISNULL(t.iTag3008, 0) AS jobId,
+    ISNULL(j.sName, '') AS jobName,
+    ISNULL(j.sCode, '') AS jobCode,
+    ISNULL(eb.VendorInvNo, '') AS vendorInvNo,
+	ISNULL(convert (nvarchar, dbo.IntToDate(eb.VendorInvDate),103), '') AS vendorInvDate,
+    ISNULL(br.sName, '') AS branch,
+	case when tc.sCode = 'ZR' then ind.mRate else 0 end zeroTaxCost,
+	case when tc.sCode = 'SR-REC' then ind.mRate else 0 end taxCost,
+    ISNULL(ca.sName, '') AS vendorAcc,
+	 ISNULL(pa.sName, '') AS purchaseAcc,
+	ISNULL(bsd.[VAT Amount], '') AS taxAmount,
+	ISNULL(h.fNet,0) AS totalCost,
+	'' AS eirId,
+	'' AS challan,
+	'' AS containerNo,
+	ISNULL(eb.sRemarks, '') AS sRemarks
+FROM tCore_Header_0 h
+JOIN tCore_HeaderData776_0 eh ON eh.iHeaderId = h.iHeaderId
+JOIN tCore_Data_0 d ON d.iHeaderId = h.iHeaderId
+JOIN tCore_Indta_0 ind on ind.iBodyId = d.iBodyId
+LEFT JOIN tCore_Data776_0 eb ON eb.iBodyId = d.iBodyId
+JOIN vCore_BodyScreenData_0 bsd on bsd.iBodyId = d.iBodyId
+LEFT JOIN tCore_Data_Tags_0 t ON t.iBodyId = d.iBodyId
+LEFT JOIN mCore_joborder j ON j.iMasterId = t.iTag3008
+LEFT JOIN mCore_branch br ON br.iMasterId = t.iTag3002
+LEFT JOIN mCore_Account ca on ca.iMasterId = d.iBookNo
+LEFT JOIN mCore_Account pa on pa.iMasterId = d.iCode
+LEFT JOIN mCore_TaxCode tc on tc.iMasterId = eb.TaxCode
+
+WHERE h.iVoucherType IN (776)--Air Cargo Job 
+and d.iMainBodyId = 0 and t.iTag3008 = 1 and  h.iDate = dbo.dateToInt('${costDate}')`;
+      const costEntryRequestData = {
+        data: [
+          {
+            Query: `${costEntryQuery}`,
+          },
+        ],
+      };
+
+      const costEntryResponse = await focusFetchDataFromApi(
+        "utility/executesqlquery",
+        costEntryRequestData,
+        sessionId,
+        this.setIsLoading
+      );
+
+      if (costEntryResponse.error) {
+        console.error("Error fetching costEntry:", costEntryResponse.error);
+        this.setCostEntry([]);
+        alert(
+          `Error fetching costEntry: ${
+            costEntryResponse?.error?.message || costEntryResponse.error
+          }`
+        );
+        return;
+      }
+      if (
+        costEntryResponse &&
+        costEntryResponse?.data &&
+        costEntryResponse?.result === 1 &&
+        costEntryResponse?.data?.[0]?.Table &&
+        costEntryResponse?.data?.[0]?.Table?.length > 0
+      ) {
+        const costEntryEntries = costEntryResponse.data?.[0]?.Table || [];
+        console.log("Fetched costEntry:", costEntryEntries);
+        this.setCostEntry(costEntryEntries); // ❗ Use context method
+      } else {
+        this.setCostEntry([]); // ❗ Use context method
+      }
+
+      // Example: fetch(`/api/jobs/${jobId}/cost-entries`)
+      //         .then(res => res.json())
+      //         .then(data => { /* update state or context */ })
+      //         .catch(err => console.error(err));
+    } catch (err) {
+      console.error("Error in fetching cost entry details:", err);
+      this.setCostEntry([]); // ❗ Use context method
+    }
+  };
+
+  render() {
+    return (
+      <JobContext.Provider
+        value={{
+          ...this.state,
+          setSelectedJob: this.setSelectedJob,
+          fetchJobs: this.fetchJobs,
+          setIsLoading: this.setIsLoading,
+          setJobs: this.setJobs,
+          fetchCostEntryDetails: this.fetchCostEntryDetails,
+          setCostEntry: this.setCostEntry,
+        }}
+      >
+        {this.props.children}
+      </JobContext.Provider>
+    );
+  }
+}

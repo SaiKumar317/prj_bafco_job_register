@@ -1,0 +1,163 @@
+import React, { Component } from "react";
+import { JobContext } from "../context/JobContext";
+import { withRouter } from "react-router-dom";
+import "../styles/jobList.css";
+
+class JobList extends Component {
+  static contextType = JobContext;
+
+  handleJobClick = (job) => {
+    this.context.setSelectedJob(job);
+    this.props.history.push(`/job/${job.id}`);
+  };
+
+  handleFindClick = () => {
+    const startDate = document.getElementById("start-date").value;
+    const endDate = document.getElementById("end-date").value;
+    const ignoreDate = document.querySelector("input[type=checkbox]").checked;
+    const type =
+      document.querySelector("input[name=type]:checked")?.value || "";
+    const search = document.getElementById("search-box").value;
+
+    const filters = { startDate, endDate, ignoreDate, type, search };
+
+    this.context.fetchJobs(filters); // ✅ call API
+  };
+
+  render() {
+    const { jobs, accountDate } = this.context;
+
+    return (
+      <div className="joblist-container">
+        <p className="module_name">Job Register</p>
+        {/* 🔹 Filters Section */}
+        <div className="filters-bar">
+          <div className="filter-group">
+            <label htmlFor="start-date">Start Date</label>
+            <input id="start-date" type="date" defaultValue={accountDate} />
+          </div>
+
+          <div className="filter-group">
+            <label htmlFor="end-date">End Date</label>
+            <input
+              id="end-date"
+              type="date"
+              defaultValue={new Date().toISOString().split("T")[0]}
+            />
+          </div>
+
+          <div className="filter-group checkbox-group">
+            <label>
+              <input type="checkbox" /> Ignore Date?
+            </label>
+          </div>
+
+          <button className="btn btn-blue">Refresh</button>
+          <button className="btn btn-light">Clear Filter</button>
+
+          <div className="filter-group">
+            <label>Type</label>
+            <div className="radio-group">
+              <label>
+                <input type="radio" name="type" defaultChecked /> Cntr
+              </label>
+              <label>
+                <input type="radio" name="type" /> BL
+              </label>
+              {/* <label>
+                <input type="radio" name="type" /> CL
+              </label> */}
+              <label>
+                <input type="radio" name="type" /> Bayan
+              </label>
+            </div>
+          </div>
+
+          <div className="filter-group">
+            <label htmlFor="search-box">Search</label>
+            <input
+              id="search-box"
+              type="text"
+              placeholder="Search..."
+              className="search-box"
+            />
+          </div>
+
+          <button className="btn btn-green" onClick={this.handleFindClick}>
+            Find
+          </button>
+          {/* <button className="btn btn-green">Add New Job</button> */}
+        </div>
+
+        {/* 🔹 Table Section */}
+        <table className="job-table">
+          <thead>
+            <tr>
+              <th>Job Id</th>
+              <th>Date</th>
+              <th>Ship/Consg</th>
+              <th>PO Ref</th>
+              <th>Ship Line</th>
+              <th>Status</th>
+              <th>Vessel</th>
+              <th>ETA Date</th>
+              <th>POL</th>
+              <th>POD</th>
+              <th>MBL</th>
+              <th>HBL</th>
+              <th>Handle By</th>
+              <th>FR-TERM</th>
+              <th>Invoice#</th>
+              <th>Branch</th>
+              <th>Salesman</th>
+              <th>Operation</th>
+            </tr>
+            {/* 🔹 Filter Row under headers */}
+            <tr className="filter-row">
+              {Array(18)
+                .fill(0)
+                .map((_, i) => (
+                  <th key={i}>
+                    <input type="text" className="filter-input" />
+                  </th>
+                ))}
+            </tr>
+          </thead>
+          <tbody>
+            {jobs.map((job) => (
+              <tr key={job.jobId}>
+                <td>
+                  <span
+                    className="job-link"
+                    onClick={() => this.handleJobClick(job)}
+                  >
+                    {job.jobName}
+                  </span>
+                </td>
+                <td>{job.docDate}</td>
+                <td>{job.ShippingConsignmentCode || "NA"}</td>
+                <td>{job.PORef || ""}</td>
+                <td>{job.shippingLine || ""}</td>
+                <td>{job.jobStatus || ""}</td>
+                <td>{job.vessel || ""}</td>
+                <td>{job.Arrival || ""}</td>
+                <td>{job.portLoading || ""}</td>
+                <td>{job.portDestination || ""}</td>
+                <td>{job.MblNoHeader || ""}</td>
+                <td>{job.HblNoHeader || ""}</td>
+                <td>{job.handleBy || ""}</td>
+                <td>{job.FreightTerms || ""}</td>
+                <td>{job.invoice || ""}</td>
+                <td>{job.branch || ""}</td>
+                <td>{job.salesman || ""}</td>
+                <td>{job.operationType || ""}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+}
+
+export default withRouter(JobList);

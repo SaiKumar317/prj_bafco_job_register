@@ -1,0 +1,279 @@
+import React, { useState, useContext, useEffect } from "react";
+import Select from "react-select";
+
+import { focusFetchDataFromApi } from "../../services/focusFetchAPI";
+import { JobContext } from "../../context/JobContext";
+
+const customStyles = {
+  menu: (provided) => ({
+    ...provided,
+    zIndex: 13,
+    width: "250px",
+  }),
+  //  "dropdown-content": (provided) => ({ ...provided }),
+
+  control: (provided) => ({
+    ...provided,
+    borderColor: "#868e96",
+    width: "150px",
+    paddingLeft: "3px",
+    // zIndex: 9,
+    // Add custom styles for the control (container)
+    // border color on focus and active state
+    boxShadow: "none", // Remove default box shadow
+    "&:hover": { borderColor: "#44799b" },
+  }),
+  // input styles
+  input: (provided) => ({
+    ...provided,
+    // Add custom styles for the input
+    // color: "red", // Change the text color to red as an example
+    fontSize: "13px", // Set the font size
+    fontWeight: "400", // Set the font weight
+    // zIndex: 9,
+    width: "150px",
+    // paddingLeft: "3px",
+    border: "none",
+  }),
+
+  singleValue: (provided) => ({
+    ...provided,
+    // Add custom styles for the selected value
+    color: "black", // Change the text color to red as an example
+    fontSize: "13px", // Set the font size
+    fontWeight: "400", // Set the font weight
+  }),
+  option: (provided, state) => ({
+    ...provided,
+    // zIndex: 9,
+    color: state.isSelected ? "black" : "black", // Text color based on selection
+    backgroundColor: state.isSelected ? "#c6def5" : "#f8f9fa", // Background color based on selection
+    "&:hover": {
+      backgroundColor: state.isSelected ? "#dce7f2" : "#e2e6ea", // Change hover background based on selection
+      color: "black", // Text color on hover
+    },
+  }),
+};
+
+function CostEntry() {
+  const [showForm, setShowForm] = useState(false);
+  const [selectedVendor, setSelectedVendor] = useState(null);
+  const [vendorOptions, setVendorOptions] = useState([]);
+
+  const { sessionId, setIsLoading } = useContext(JobContext); // get sessionId from context
+
+  useEffect(() => {
+    fetchVendorDetails();
+  }, []);
+
+  const handleAddNewCostClick = () => {
+    setShowForm(true);
+  };
+
+  const handleCancelClick = () => {
+    setShowForm(false);
+  };
+
+  const handleSelectVendor = async (selected) => {
+    console.log("selectedVendor", selected);
+    setSelectedVendor(selected);
+  };
+  const fetchVendorDetails = async () => {
+    const vendorQuery = `
+      SELECT sName AS label, iMasterId AS value 
+      FROM mCore_Account 
+      WHERE iMasterId <> 0 
+      AND iStatus <> 5 
+      AND iAccountType IN (6,7);
+    `;
+    const vendorReqData = {
+      data: [{ Query: vendorQuery }],
+    };
+
+    try {
+      const vendorResponse = await focusFetchDataFromApi(
+        "utility/executesqlquery",
+        vendorReqData,
+        sessionId,
+        setIsLoading
+      );
+
+      if (
+        vendorResponse &&
+        vendorResponse.result === 1 &&
+        vendorResponse.data?.[0]?.Table?.length > 0
+      ) {
+        setVendorOptions(vendorResponse.data[0].Table);
+      } else {
+        console.warn("No vendor data found.");
+        setVendorOptions([]);
+      }
+    } catch (error) {
+      console.error("Error fetching vendor details:", error);
+      setVendorOptions([]);
+    }
+  };
+
+  return (
+    <div>
+      {showForm ? (
+        <div className="filters-bar">
+          <div className="filter-group">
+            <label htmlFor="vendor-select">Vendor</label>
+            <Select
+              className="customDropdown head_input "
+              styles={customStyles}
+              options={vendorOptions}
+              value={selectedVendor}
+              onChange={handleSelectVendor}
+              isClearable={true}
+              placeholder="Select Vendor"
+            />
+            {/* <select id="vendor-select">
+              <option>Choose a Vendor</option>
+            </select> */}
+          </div>
+
+          <div className="filter-group">
+            <label htmlFor="invoice-no">Invoice No</label>
+            <input
+              className="input-field"
+              id="invoice-no"
+              type="text"
+              placeholder="Invoice No"
+            />
+          </div>
+
+          <div className="filter-group">
+            <label htmlFor="inv-date">Invoice Date</label>
+            <input
+              className="input-field"
+              id="inv-date"
+              type="date"
+              placeholder="INV Date"
+            />
+          </div>
+
+          <div className="filter-group">
+            <label htmlFor="zero-tax-cost">0 Tax Cost</label>
+            <input
+              className="input-field"
+              id="zero-tax-cost"
+              type="text"
+              placeholder="0 Tax Cost"
+            />
+          </div>
+
+          <div className="filter-group">
+            <label htmlFor="tax-cost">Tax Cost</label>
+            <input
+              className="input-field"
+              id="tax-cost"
+              type="text"
+              placeholder="Tax Cost"
+            />
+          </div>
+
+          <div className="filter-group">
+            <label htmlFor="tax-amount">Tax Amount</label>
+            <input
+              className="input-field"
+              id="tax-amount"
+              type="text"
+              placeholder="Tax Amount"
+            />
+          </div>
+
+          <div className="filter-group">
+            <label htmlFor="narration-en">Narration (English)</label>
+            <input
+              className="input-field"
+              id="narration-en"
+              type="text"
+              placeholder="Narration English"
+            />
+          </div>
+
+          <div className="filter-group">
+            <label htmlFor="narration-ar">Narration (Arabic)</label>
+            <input
+              className="input-field"
+              id="narration-ar"
+              type="text"
+              placeholder="Narration Arabic"
+            />
+          </div>
+
+          <div
+            className="filter-group"
+            style={{ display: "flex", flexDirection: "row", gap: "8px" }}
+          >
+            <button className="btn btn_post">Save Cost</button>
+            <button className="btn btn_post" onClick={handleCancelClick}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div style={{ padding: "6px", textAlign: "start" }}>
+          <button className="btn btn_post" onClick={handleAddNewCostClick}>
+            Add New Cost
+          </button>
+        </div>
+      )}
+
+      <table className="job-table">
+        <thead>
+          <tr>
+            <th>Move?</th>
+            <th>Vendor Id</th>
+            <th>INV #</th>
+            <th>INV Date</th>
+            <th>0 Tax DB</th>
+            <th>Tax DB</th>
+            <th>Credit</th>
+            <th>0 Tax Cost</th>
+            <th>Tax Cost</th>
+            <th>Tax Amount</th>
+            <th>Total Cost</th>
+            <th>EIR Id</th>
+            <th>Challan</th>
+            <th>Cntr #</th>
+            <th>CHK</th>
+            <th>Narration</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <input type="checkbox" />
+            </td>
+            <td>
+              <span className="edit-link">Edit</span> GEN-TPT
+            </td>
+            <td>150725-235</td>
+            <td>15/07/2025</td>
+            <td>511003</td>
+            <td>512002</td>
+            <td>H.O</td>
+            <td>65.00</td>
+            <td>0.00</td>
+            <td>0.00</td>
+            <td>65.00</td>
+            <td>150725-235</td>
+            <td>0</td>
+            <td>CAAU215545</td>
+            <td>N</td>
+            <td>EMPTY PICK UP FROM LINE - JED</td>
+            <td>
+              <span className="delete-icon">✖</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+export default CostEntry;

@@ -1,0 +1,125 @@
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
+
+export const generateCostEntryExcel = async (
+  costEntry = [],
+  selectedJob = {},
+  costDate = ""
+) => {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet("Cost Entry");
+
+  // 🔹 Add Report Title
+  worksheet.mergeCells("A1:M1");
+  const titleCell = worksheet.getCell("A1");
+  titleCell.value = "Cost Entry Report";
+  titleCell.font = { size: 16, bold: true };
+  titleCell.alignment = { vertical: "middle", horizontal: "center" };
+
+  // 🔹 Job Details Section (starts at row 3)
+  worksheet.addRow([]); // Empty row after title
+
+  const jobDetails = [
+    ["Job Id", selectedJob.jobName || ""],
+    ["Cost Date", costDate || ""],
+    ["Total Sales", selectedJob.totalSales ?? ""],
+    ["Total Cost", selectedJob.totalCost ?? ""],
+    ["Profit/(Loss) - NoTax", selectedJob.profitLossNoTax ?? ""],
+    ["Cost Locked", selectedJob.costLocked ? "Yes" : "No"],
+  ];
+
+  jobDetails.forEach(([label, value]) => {
+    const row = worksheet.addRow([label, value]);
+    row.getCell(1).font = { bold: true };
+  });
+
+  worksheet.addRow([]); // Empty row before headers
+
+  const headerRowNumber = worksheet.lastRow.number + 1;
+
+  // 🔹 Table Headers (excluding "Move?" checkbox)
+  const headers = [
+    "Vendor Id",
+    "INV #",
+    "INV Date",
+    "Credit",
+    "0 Tax Cost",
+    "Tax Cost",
+    "Tax Amount",
+    "Total Cost",
+    "EIR Id",
+    "Challan",
+    "Cntr #",
+    "Narration",
+  ];
+  worksheet.addRow(headers);
+
+  // 🔹 Header Styling
+  const headerRow = worksheet.getRow(headerRowNumber);
+  headerRow.font = { bold: true, color: { argb: "FFFFFF" } };
+  headerRow.fill = {
+    type: "pattern",
+    pattern: "solid",
+    fgColor: { argb: "44799B" },
+  };
+  headerRow.alignment = { horizontal: "center", vertical: "middle" };
+
+  // 🔹 Freeze header (after job details)
+  worksheet.views = [
+    {
+      state: "frozen",
+      ySplit: headerRowNumber,
+    },
+  ];
+
+  // 🔹 Add Data Rows
+  costEntry.forEach((entry) => {
+    worksheet.addRow([
+      entry.vendorAcc || "",
+      entry.vendorInvNo || "",
+      entry.vendorInvDate || "",
+      entry.purchaseAcc || "",
+      entry.zeroTaxCost ?? "",
+      entry.taxCost ?? "",
+      entry.taxAmount ?? "",
+      entry.totalCost ?? "",
+      entry.eirId || "",
+      entry.challan || "",
+      entry.containerNo || "",
+      entry.sRemarks || "",
+    ]);
+  });
+
+  // 🔹 Format Rows: Borders + Alignment
+  worksheet.eachRow((row, rowNumber) => {
+    if (rowNumber >= headerRowNumber) {
+      row.eachCell((cell, colNumber) => {
+        const isNumericColumn = [5, 6, 7, 8].includes(colNumber);
+        cell.border = {
+          top: { style: "thin" },
+          bottom: { style: "thin" },
+          left: { style: "thin" },
+          right: { style: "thin" },
+        };
+        cell.alignment = {
+          horizontal: isNumericColumn ? "right" : "left",
+          vertical: "middle",
+        };
+      });
+    }
+  });
+
+  // 🔹 Auto-width for columns
+  worksheet.columns.forEach((column) => {
+    let maxLength = 0;
+    column.eachCell({ includeEmpty: true }, (cell) => {
+      const value = cell.value ? cell.value.toString() : "";
+      if (value.length > maxLength) maxLength = value.length;
+    });
+    column.width = maxLength < 20 ? 20 : maxLength + 2;
+  });
+
+  // 🔹 Export File
+  const buffer = await workbook.xlsx.writeBuffer();
+  saveAs(new Blob([buffer]), "Cost-Entry-Report.xlsx");
+};

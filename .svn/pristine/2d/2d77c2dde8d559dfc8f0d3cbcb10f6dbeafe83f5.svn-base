@@ -1,0 +1,264 @@
+import React from "react";
+import { parseCSV } from "../../utils/csvParser"; // Your CSV parser utility
+import { focusFetchDataFromApi } from "../services/focusFetchAPI";
+
+class JobCostUploader extends React.Component {
+  constructor(props) {
+    super(props);
+    this.fileInputRef = React.createRef();
+    this.state = {
+      parsedData: null, // Store parsed CSV data here
+    };
+  }
+
+  handleFileChange = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (!file.name.endsWith(".csv")) {
+      alert("Please upload a CSV file only.");
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      try {
+        const text = e.target.result;
+        const parsed = parseCSV(text);
+        console.log("✅ CSV parsed:", parsed);
+
+        const requiredHeaders = [
+          "job_number",
+          "vendor_inv_no",
+          "vendor_inv_date",
+          "zero_tax_cost",
+          "tax_cost",
+          "vendor_id",
+        ];
+        // Check if all required headers exist in parsed.columns
+        const missingHeaders = requiredHeaders.filter(
+          (header) => !parsed.columns.includes(header?.toLowerCase())
+        );
+
+        if (missingHeaders.length > 0) {
+          alert(
+            `Please check your CSV file.\nMissing required headers: ${missingHeaders.join(
+              ", "
+            )}.`
+          );
+          return; // stop here, don't set state
+        }
+
+        // Save parsed data in state
+        this.setState({
+          parsedData: {
+            fileName: file.name,
+            ...parsed,
+          },
+        });
+      } catch (err) {
+        console.error("❌ Error parsing CSV:", err);
+        alert("Failed to parse CSV. Please check the file format.");
+      }
+    };
+
+    reader.readAsText(file);
+  };
+
+  // downloading error logs
+  downloadTxtFile(data, errorFile) {
+    var text = data.join("\n");
+    console.log(`${errorFile}`, data);
+    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${errorFile}`;
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    URL.revokeObjectURL(url);
+  }
+
+  handlePostJob = async () => {
+    const { parsedData } = this.state;
+    const { sessionId, setIsLoading } = this.context;
+
+    if (!parsedData) {
+      alert("Please upload a CSV file first.");
+      return;
+    }
+
+    console.log("🚀 Ready to post:", parsedData);
+
+    const arrayOfJobNo = parsedData.data.map((obj) => obj["job_number"]);
+    const uniqueJobNo = [...new Set(arrayOfJobNo)].filter(Boolean);
+
+    const arrayOfVendorId = parsedData.data.map((obj) => obj["vendor_id"]);
+    const uniqueVendorId = [...new Set(arrayOfVendorId)].filter(Boolean);
+
+    const missingJobNumbers = [];
+    const missingVendorIds = [];
+
+    // ✅ Query for job numbers
+    const JobNoQuery = `SELECT iMasterId jobID, sName jobName, sCode jobCode
+FROM mCore_joborder 
+WHERE iMasterId <> 0 AND iStatus <> 5 
+AND sCode IN (${uniqueJobNo.map((j) => `'${j}'`).join(",")})`;
+
+    const jobNoReq = {
+      data: [{ Query: JobNoQuery }],
+    };
+
+    const jobNoResponse = await focusFetchDataFromApi(
+      "utility/executesqlquery",
+      jobNoReq,
+      sessionId,
+      this.setIsLoading
+    );
+
+    if (
+      jobNoResponse &&
+      jobNoResponse.result === 1 &&
+      Array.isArray(jobNoResponse.data)
+    ) {
+      const jobTable = Array.isArray(jobNoResponse.data[0]?.Table)
+        ? jobNoResponse.data[0].Table
+        : [];
+
+      const existingJobCodes = jobTable.map((j) =>
+        (j?.jobCode || "").trim().toLowerCase()
+      );
+
+      missingJobNumbers.push(
+        ...uniqueJobNo.filter(
+          (jobNo) =>
+            !existingJobCodes.includes((jobNo || "").trim().toLowerCase())
+        )
+      );
+    }
+
+    // ✅ Query for vendor IDs
+    const VendorIdQuery = `SELECT iMasterId accId, sName accName, sCode accCode
+FROM mCore_Account 
+WHERE iMasterId <> 0 AND iStatus <> 5 
+AND sCode IN (${uniqueVendorId.map((v) => `'${v}'`).join(",")})`;
+
+    const vendorReq = {
+      data: [{ Query: VendorIdQuery }],
+    };
+
+    const vendorResponse = await focusFetchDataFromApi(
+      "utility/executesqlquery",
+      vendorReq,
+      sessionId,
+      this.setIsLoading
+    );
+
+    if (
+      vendorResponse &&
+      vendorResponse.result === 1 &&
+      Array.isArray(vendorResponse.data)
+    ) {
+      const vendorTable = Array.isArray(vendorResponse.data[0]?.Table)
+        ? vendorResponse.data[0].Table
+        : [];
+
+      const existingVendorCodes = vendorTable.map((v) =>
+        (v?.accCode || "").trim().toLowerCase()
+      );
+
+      missingVendorIds.push(
+        ...uniqueVendorId.filter(
+          (vendorId) =>
+            !existingVendorCodes.includes((vendorId || "").trim().toLowerCase())
+        )
+      );
+    }
+
+    // ✅ Log missing entries (if any)
+    if (missingJobNumbers.length > 0 || missingVendorIds.length > 0) {
+      const logLines = [];
+
+      if (missingJobNumbers.length > 0) {
+        logLines.push("Missing Job Numbers:");
+        logLines.push(...missingJobNumbers);
+        logLines.push("");
+      }
+
+      if (missingVendorIds.length > 0) {
+        logLines.push("Missing Vendor IDs:");
+        logLines.push(...missingVendorIds);
+      }
+
+      this.downloadTxtFile(logLines, "Missing_Jobs_And_Vendors.txt");
+      alert("Some job numbers or vendor IDs are missing. Log file downloaded.");
+      return;
+    }
+
+    // Group data by vendor_inv_no
+    const groupedData = parsedData.data.reduce((acc, entry) => {
+      const vendorInvNo = entry.vendor_inv_no || "UNKNOWN";
+
+      if (!acc[vendorInvNo]) {
+        acc[vendorInvNo] = [];
+      }
+
+      acc[vendorInvNo].push(entry);
+
+      return acc;
+    }, {});
+
+    // Replace this with your actual API call to post data:
+    /*
+    fetch("/api/jobcost/post", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(parsedData.data),
+    })
+      .then((res) => res.json())
+      .then((result) => {
+        alert("Posted successfully!");
+        // Optionally clear state and reset file input
+        this.setState({ parsedData: null });
+        this.fileInputRef.current.value = null;
+      })
+      .catch((err) => {
+        console.error("Posting error:", err);
+        alert("Failed to post data.");
+      });
+    */
+
+    // For now, just alert success (remove in real usage)
+    alert("Posting functionality is not implemented yet!");
+  };
+
+  render() {
+    return (
+      <div className="filters-bar">
+        <div className="filter-group" style={{ paddingTop: "10px" }}>
+          <label htmlFor="cost-import">Job Cost Import (CSV)</label>
+          <input
+            type="file"
+            id="cost-import"
+            accept=".csv"
+            className="input-field job-cost-import"
+            ref={this.fileInputRef}
+            onChange={this.handleFileChange}
+          />
+        </div>
+        <div style={{ paddingBottom: "6px" }}>
+          <button className="btn btn_post" onClick={this.handlePostJob}>
+            Post
+          </button>
+        </div>
+      </div>
+    );
+  }
+}
+
+export default JobCostUploader;
