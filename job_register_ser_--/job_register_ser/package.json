@@ -1,0 +1,29 @@
+{
+  "name": "job_register_server",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "webpack --config webpack.config.js --stats-error-details --mode production"
+  },
+  "config": {
+    "processName": "job_register_server",
+    "projectPath": "D:\\Modules\\sai_modules\\job_register_server"
+  },
+  "homepage": ".",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@babel/core": "^7.28.4",
+    "babel-loader": "^10.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.2",
+    "express": "^5.1.0",
+    "mssql": "^11.0.1",
+    "webpack": "^5.101.3",
+    "webpack-cli": "^6.0.1",
+    "xml2js": "^0.6.2"
+  }
+}

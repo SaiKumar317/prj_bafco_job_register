@@ -581,7 +581,7 @@ LEFT JOIN mCore_Account pa on pa.iMasterId = d.iCode
 LEFT JOIN mCore_TaxCode tc on tc.iMasterId = eb.TaxCode
 
 WHERE h.iVoucherType IN (776)--Air Cargo Job 
-and d.iMainBodyId = 0 and t.iTag3008 = ${selectedJob.jobId} and  h.iDate = dbo.dateToInt('${costDate}')
+and d.iMainBodyId = 0 and t.iTag3008 = ${selectedJob.jobId} and  h.iDate <= dbo.dateToInt('${costDate}')
 UNION ALL
  SELECT 
    distinct h.sVoucherNo,
@@ -618,7 +618,7 @@ LEFT JOIN mCore_Account pa on pa.iMasterId = d.iCode
 LEFT JOIN mCore_TaxCode tc on tc.iMasterId = eb.TaxCode
 
 WHERE h.iVoucherType IN (777)--EIR Records
-and d.iMainBodyId = 0 and t.iTag3008 = ${selectedJob.jobId} and  h.iDate = dbo.dateToInt('${costDate}')
+and d.iMainBodyId = 0 and t.iTag3008 = ${selectedJob.jobId} and  h.iDate <= dbo.dateToInt('${costDate}')
 UNION ALL
  SELECT 
    distinct h.sVoucherNo,
@@ -655,7 +655,7 @@ LEFT JOIN mCore_Account pa on pa.iMasterId = d.iCode
 LEFT JOIN mCore_TaxCode tc on tc.iMasterId = eb.TaxCode
 
 WHERE h.iVoucherType IN (778)--Challan Records
-and d.iMainBodyId = 0 and t.iTag3008 = ${selectedJob.jobId} and  h.iDate = dbo.dateToInt('${costDate}')
+and d.iMainBodyId = 0 and t.iTag3008 = ${selectedJob.jobId} and  h.iDate <= dbo.dateToInt('${costDate}')
 `;
       const costEntryRequestData = {
         data: [
